@@ -1,4 +1,5 @@
 import Head from 'next/head'
+import Link from 'next/link'
 import React, { useEffect, useReducer, useState } from 'react';
 import Chess, { Dragging, getDefaultLineup } from '../src/react-chess'
 // import * as Ably from 'ably'
@@ -152,6 +153,39 @@ export default function Home() {
         <title>ajedrez</title>
       </Head>
       <Demo />
+      <div style={{ margin: '20px 0', textAlign: 'center' }}>
+        <h2>Variantes disponibles</h2>
+        <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <Link href="/secret-king-boot">
+            <a style={{ 
+              display: 'block', 
+              padding: '15px 25px', 
+              backgroundColor: '#667eea', 
+              color: 'white', 
+              textDecoration: 'none', 
+              borderRadius: '8px',
+              fontWeight: 'bold',
+              transition: 'all 0.2s ease'
+            }}>
+              🤴 La Botte Secrète du Roi
+            </a>
+          </Link>
+          <Link href="/">
+            <a style={{ 
+              display: 'block', 
+              padding: '15px 25px', 
+              backgroundColor: '#27ae60', 
+              color: 'white', 
+              textDecoration: 'none', 
+              borderRadius: '8px',
+              fontWeight: 'bold',
+              transition: 'all 0.2s ease'
+            }}>
+              ♗ Échecs Classiques
+            </a>
+          </Link>
+        </div>
+      </div>
       {/* <button onClick={async () => {
         await axios.post('http://localhost:3001/login', { user: 'seba', password: 'sebasjm' }, { withCredentials: true })
 
