@@ -150,31 +150,43 @@ function Chess({
 
   const handlePick: MouseEventHandler = (ev) => {
     if (!allowMoves) {
-      return false
+      return false;
     }
 
     const bbox = boardEl.current.getBoundingClientRect();
     const x = ev.clientX - bbox.left;
     const y = ev.clientY - bbox.top;
 
-    const dragFrom = coordsToPosition({ tileSize: size/8, x, y })
+    const dragFrom = coordsToPosition({ tileSize: size / 8, x, y });
 
-    return onClick(dragFrom)
+    // Vérifie si la pièce est un roi
+    const pieceIndex = pieces.findIndex(p => {
+      const { x: px, y: py, piece: pName } = decode.fromPieceDecl(p);
+      return px === dragFrom.x && py === dragFrom.y && (pName === 'K' || pName === 'k');
+    });
 
-    // const mark = marks?.find(m => m.x === dragFrom.x && m.y === dragFrom.y)
-    // if (mark) {
-    //   dispatch({ type: 'drop' })
-    //   // check if pawn promotion
-    //   const landingPieceName = (draggingPiece.name === 'P' && dragFrom.y === 0) ? 'Q' :
-    //     (draggingPiece.name === 'p' && dragFrom.y === 7) ? 'q' :
-    //       draggingPiece.name;
+    if (pieceIndex !== -1) {
+      // Permet le déplacement du roi
+      const newPosition = prompt('Entrez la nouvelle position (ex: e4):');
+      if (newPosition) {
+        const [newX, newY] = [newPosition.charCodeAt(0) - 'a'.charCodeAt(0), parseInt(newPosition[1], 10) - 1];
+        const pieceDetails = pieces[pieceIndex].split(',');
+        const updatedPiece = `${newX},${newY},${pieceDetails[2]}`;
 
-    //   onMovePiece({ ...draggingPiece, name: landingPieceName }, df.pos, dragFrom.pos)
-    //   return true
-    // }
+        // Vérifie si le roi noir est correctement mis à jour
+        if (pieceDetails[2] === 'k') {
+          console.log(`Déplacement du roi noir: Ancienne position (${dragFrom.x}, ${dragFrom.y}), Nouvelle position (${newX}, ${newY})`);
+        }
 
+        pieces[pieceIndex] = updatedPiece;
+        return true;
+      }
+    } else {
+      console.error('Aucune pièce trouvée à cette position.');
+    }
 
-  }
+    return onClick(dragFrom);
+  };
 
   return (
     <div ref={boardEl} style={{ position: 'relative', overflow: 'hidden', width: '100%', height: size }} onClick={handlePick}>

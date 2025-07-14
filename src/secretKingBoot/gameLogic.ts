@@ -456,11 +456,33 @@ function getPieceAt(board: (string | null)[][], position: string): string | null
 }
 
 function isPieceOwnedBy(piece: string, player: 'white' | 'black'): boolean {
-  const isWhitePiece = piece[0] === piece[0].toUpperCase();
-  return (player === 'white' && isWhitePiece) || (player === 'black' && !isWhitePiece);
+  const isWhitePiece = piece.includes('White');
+  const isBlackPiece = piece.includes('Black');
+  
+  if (player === 'white') {
+    return isWhitePiece;
+  } else {
+    return isBlackPiece;
+  }
 }
 
 function hasPieceInReserve(reserve: Reserve, pieceType: string): boolean {
-  const key = pieceType.toLowerCase().replace(/white|black/, '') + 's';
-  return (reserve[key as keyof Reserve] as number) > 0;
+  // Extraire le type de pièce du nom complet (ex: "WhiteKnight" -> "knights")
+  let baseType = pieceType.replace(/White|Black/, '').toLowerCase();
+  
+  // Mapping vers les clés de la réserve
+  const typeMap: { [key: string]: keyof Reserve } = {
+    'pawn': 'pawns',
+    'knight': 'knights', 
+    'bishop': 'bishops',
+    'rook': 'rooks',
+    'queen': 'queens'
+  };
+  
+  const reserveKey = typeMap[baseType];
+  if (!reserveKey) {
+    return false;
+  }
+  
+  return (reserve[reserveKey] as number) > 0;
 }

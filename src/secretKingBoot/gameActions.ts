@@ -112,6 +112,15 @@ function applyMovePiece(
   // Récupérer la pièce
   const piece = gameState.board[fromRank][fromFile];
   
+  // Si c'est un roi, mettre à jour sa position stockée
+  if (piece && piece.includes('King')) {
+    if (piece === 'WhiteKing') {
+      gameState.whiteKingPosition = action.to! as 'D1' | 'E1';
+    } else if (piece === 'BlackKing') {
+      gameState.blackKingPosition = action.to! as 'D8' | 'E8';
+    }
+  }
+  
   // Gérer la capture
   const capturedPiece = gameState.board[toRank][toFile];
   if (capturedPiece) {
@@ -275,15 +284,37 @@ function addCapturedPieceToReserve(
 }
 
 function addPieceToReserve(reserve: Reserve, pieceType: string): void {
-  const key = pieceType.toLowerCase() + 's';
-  if (key in reserve) {
-    (reserve[key as keyof Reserve] as number)++;
+  // Mapping vers les clés de la réserve
+  const typeMap: { [key: string]: keyof Reserve } = {
+    'pawn': 'pawns',
+    'knight': 'knights', 
+    'bishop': 'bishops',
+    'rook': 'rooks',
+    'queen': 'queens'
+  };
+  
+  const baseType = pieceType.toLowerCase().replace(/white|black/, '');
+  const reserveKey = typeMap[baseType];
+  
+  if (reserveKey && reserveKey in reserve) {
+    (reserve[reserveKey] as number)++;
   }
 }
 
 function removePieceFromReserve(reserve: Reserve, pieceType: string): void {
-  const key = pieceType.toLowerCase().replace(/white|black/, '') + 's';
-  if (key in reserve && (reserve[key as keyof Reserve] as number) > 0) {
-    (reserve[key as keyof Reserve] as number)--;
+  // Mapping vers les clés de la réserve
+  const typeMap: { [key: string]: keyof Reserve } = {
+    'pawn': 'pawns',
+    'knight': 'knights', 
+    'bishop': 'bishops',
+    'rook': 'rooks',
+    'queen': 'queens'
+  };
+  
+  const baseType = pieceType.toLowerCase().replace(/white|black/, '');
+  const reserveKey = typeMap[baseType];
+  
+  if (reserveKey && reserveKey in reserve && (reserve[reserveKey] as number) > 0) {
+    (reserve[reserveKey] as number)--;
   }
 }
