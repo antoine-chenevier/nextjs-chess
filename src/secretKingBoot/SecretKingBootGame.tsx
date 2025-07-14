@@ -63,10 +63,22 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
   
   // Sélectionner un type d'action
   const handleActionSelection = useCallback((actionType: ActionType) => {
+    // Pour "generate_pawn", exécuter directement l'action
+    if (actionType === 'generate_pawn') {
+      const generatePawnAction: GameAction = {
+        type: 'generate_pawn',
+        player: gameState.currentPlayer,
+        turn: gameState.turn
+      };
+      handleAction(generatePawnAction);
+      return;
+    }
+    
+    // Pour les autres actions, afficher les mouvements possibles
     setSelectedAction(actionType);
     const moves = getPossibleMoves(gameState, actionType);
     setPossibleMoves(moves);
-  }, [gameState]);
+  }, [gameState, handleAction]);
   
   // Réinitialiser la partie
   const resetGame = useCallback(() => {
