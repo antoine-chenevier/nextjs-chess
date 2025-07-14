@@ -36,6 +36,7 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
   const [possibleMoves, setPossibleMoves] = useState<GameAction[]>([]);
   const [gameAnalysis, setGameAnalysis] = useState(null);
   const [selectedPieceForKingMove, setSelectedPieceForKingMove] = useState<string | null>(null);
+  const [selectedPieceForPlacement, setSelectedPieceForPlacement] = useState<string | null>(null);
   
   // Effectuer une action
   const handleAction = useCallback((action: GameAction) => {
@@ -53,6 +54,17 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
         piece: action.piece
       }));
       setPossibleMoves(movesWithPiece);
+      return;
+    }
+    
+    // Si c'est une sélection de pièce pour "place_piece"
+    if (action.type === 'place_piece' && !action.to) {
+      setSelectedPieceForPlacement(action.piece!);
+      // Générer les positions possibles pour cette pièce
+      const placementMoves = getPossibleMoves(gameState, 'place_piece').filter(move => 
+        move.piece === action.piece
+      );
+      setPossibleMoves(placementMoves);
       return;
     }
     
@@ -77,6 +89,7 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
     setSelectedAction(null);
     setPossibleMoves([]);
     setSelectedPieceForKingMove(null);
+    setSelectedPieceForPlacement(null);
     
   }, [gameState]);
   
@@ -149,6 +162,62 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
       return;
     }
     
+    // Pour "place_piece", afficher uniquement les pièces disponibles
+    if (actionType === 'place_piece') {
+      setSelectedAction(actionType);
+      const reserve = gameState.currentPlayer === 'white' ? 
+        gameState.whiteReserve : gameState.blackReserve;
+      
+      // Créer des actions pour chaque type de pièce disponible
+      const pieceOptions: GameAction[] = [];
+      const player = gameState.currentPlayer;
+      const turn = gameState.turn;
+      
+      if (reserve.pawns > 0) {
+        pieceOptions.push({
+          type: 'place_piece',
+          player,
+          turn,
+          piece: 'Pawn'
+        });
+      }
+      if (reserve.knights > 0) {
+        pieceOptions.push({
+          type: 'place_piece',
+          player,
+          turn,
+          piece: 'Knight'
+        });
+      }
+      if (reserve.bishops > 0) {
+        pieceOptions.push({
+          type: 'place_piece',
+          player,
+          turn,
+          piece: 'Bishop'
+        });
+      }
+      if (reserve.rooks > 0) {
+        pieceOptions.push({
+          type: 'place_piece',
+          player,
+          turn,
+          piece: 'Rook'
+        });
+      }
+      if (reserve.queens > 0) {
+        pieceOptions.push({
+          type: 'place_piece',
+          player,
+          turn,
+          piece: 'Queen'
+        });
+      }
+      
+      setPossibleMoves(pieceOptions);
+      return;
+    }
+    
     // Pour les autres actions, afficher les mouvements possibles
     setSelectedAction(actionType);
     const moves = getPossibleMoves(gameState, actionType);
@@ -162,6 +231,7 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
     setPossibleMoves([]);
     setGameAnalysis(null);
     setSelectedPieceForKingMove(null);
+    setSelectedPieceForPlacement(null);
   }, []);
   
   const availableActions = getAvailableActions(gameState);
@@ -238,7 +308,11 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
                   ? 'Choisir une pièce à placer' 
                   : selectedAction === 'move_king_and_place' && selectedPieceForKingMove
                     ? `Déplacer le roi (pièce: ${selectedPieceForKingMove})`
-                    : 'Coups possibles'
+                    : selectedAction === 'place_piece' && !selectedPieceForPlacement
+                      ? 'Choisir une pièce à placer'
+                      : selectedAction === 'place_piece' && selectedPieceForPlacement
+                        ? `Choisir la position pour ${selectedPieceForPlacement}`
+                        : 'Coups possibles'
                 }
               </h3>
               <MovesList 
@@ -422,7 +496,13 @@ function formatMoveDescription(move: GameAction): string {
     case 'generate_pawn':
       return 'Générer un pion';
     case 'place_piece':
-      return `Placer ${move.piece} en ${move.to}`;
+      if (!move.to) {
+        // Sélection de pièce
+        return `Sélectionner ${move.piece}`;
+      } else {
+        // Placement de pièce
+        return `Placer ${move.piece} en ${move.to}`;
+      }
     case 'move_piece':
       return `Déplacer ${move.piece} de ${move.from} à ${move.to}`;
     case 'move_king_and_place':
