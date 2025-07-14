@@ -218,6 +218,14 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
       return;
     }
     
+    // Pour "exchange_pieces", afficher directement les échanges possibles
+    if (actionType === 'exchange_pieces') {
+      setSelectedAction(actionType);
+      const moves = getPossibleMoves(gameState, actionType);
+      setPossibleMoves(moves);
+      return;
+    }
+    
     // Pour les autres actions, afficher les mouvements possibles
     setSelectedAction(actionType);
     const moves = getPossibleMoves(gameState, actionType);
@@ -312,7 +320,9 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
                       ? 'Choisir une pièce à placer'
                       : selectedAction === 'place_piece' && selectedPieceForPlacement
                         ? `Choisir la position pour ${selectedPieceForPlacement}`
-                        : 'Coups possibles'
+                        : selectedAction === 'exchange_pieces'
+                          ? 'Échanges possibles'
+                          : 'Coups possibles'
                 }
               </h3>
               <MovesList 
@@ -514,7 +524,14 @@ function formatMoveDescription(move: GameAction): string {
         return `Déplacer roi de ${move.from} à ${move.to} + placer ${move.piece}`;
       }
     case 'exchange_pieces':
-      return `Échanger ${move.cost} pions → ${move.exchangeTo}`;
+      const pieceNames = {
+        knight: 'Cavalier',
+        bishop: 'Fou', 
+        rook: 'Tour',
+        queen: 'Dame'
+      };
+      const pieceName = pieceNames[move.exchangeTo as keyof typeof pieceNames] || move.exchangeTo;
+      return `${move.cost} pions → ${pieceName}`;
     case 'promote_pawn':
       return `Promouvoir pion en ${move.piece}`;
     default:

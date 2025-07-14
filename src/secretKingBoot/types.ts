@@ -65,7 +65,8 @@ export const RESERVE_LIMITS: Reserve = {
 export const EXCHANGE_COSTS = {
   knight: 2,
   bishop: 3,
-  rook: 4
+  rook: 4,
+  queen: 5
 } as const;
 
 // Positions valides pour les rois
