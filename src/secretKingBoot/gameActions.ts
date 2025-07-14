@@ -259,7 +259,10 @@ function parsePosition(position: string): [number, number] {
 
 function formatPieceForBoard(pieceType: string, player: 'white' | 'black'): string {
   const prefix = player === 'white' ? 'White' : 'Black';
-  return prefix + pieceType.replace(/white|black/i, '');
+  // Nettoyer le type de pièce et s'assurer qu'il a la bonne casse
+  const cleanType = pieceType.replace(/White|Black/gi, '');
+  const capitalizedType = cleanType.charAt(0).toUpperCase() + cleanType.slice(1).toLowerCase();
+  return prefix + capitalizedType;
 }
 
 function addCapturedPieceToReserve(

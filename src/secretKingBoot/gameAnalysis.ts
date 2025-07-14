@@ -83,6 +83,9 @@ export function getPossibleMoves(
     case 'move_piece':
       return getPieceMovementMoves(gameState);
     
+    case 'move_king_and_place':
+      return getKingMoveAndPlaceMoves(gameState);
+    
     case 'place_piece':
       return getPiecePlacementMoves(gameState);
     
@@ -429,9 +432,52 @@ function isValidSquare(x: number, y: number): boolean {
 }
 
 function getPiecePlacementMoves(gameState: SecretKingBootGameState): GameAction[] {
-  // TODO: Implémenter la génération des coups de placement
-  // En vérifiant les cases libres et les règles spécifiques (zones pions)
-  return [];
+  const moves: GameAction[] = [];
+  const player = gameState.currentPlayer;
+  const turn = gameState.turn;
+  const reserve = player === 'white' ? gameState.whiteReserve : gameState.blackReserve;
+  
+  // Types de pièces disponibles en réserve
+  const availablePieces: { type: string; count: number }[] = [
+    { type: 'Pawn', count: reserve.pawns },
+    { type: 'Knight', count: reserve.knights },
+    { type: 'Bishop', count: reserve.bishops },
+    { type: 'Rook', count: reserve.rooks },
+    { type: 'Queen', count: reserve.queens }
+  ];
+  
+  // Pour chaque type de pièce disponible en réserve
+  for (const pieceInfo of availablePieces) {
+    if (pieceInfo.count > 0) {
+      // Parcourir toutes les cases de l'échiquier
+      for (let rank = 0; rank < 8; rank++) {
+        for (let file = 0; file < 8; file++) {
+          const position = String.fromCharCode(65 + file) + (rank + 1);
+          
+          // Vérifier que la case est libre
+          if (gameState.board[rank][file] === null) {
+            // Vérifier les règles spéciales pour les pions
+            if (pieceInfo.type === 'Pawn') {
+              const allowedRanks = player === 'white' ? [1, 2, 3, 4] : [5, 6, 7, 8];
+              if (!allowedRanks.includes(rank + 1)) {
+                continue; // Passer cette case si elle n'est pas dans la zone autorisée
+              }
+            }
+            
+            moves.push({
+              type: 'place_piece',
+              player,
+              turn,
+              to: position,
+              piece: pieceInfo.type
+            });
+          }
+        }
+      }
+    }
+  }
+  
+  return moves;
 }
 
 function getExchangeMoves(gameState: SecretKingBootGameState): GameAction[] {
@@ -479,8 +525,14 @@ function getExchangeMoves(gameState: SecretKingBootGameState): GameAction[] {
 }
 
 function isPieceOwnedBy(piece: string, player: 'white' | 'black'): boolean {
-  const isWhitePiece = piece.startsWith('White');
-  return (player === 'white' && isWhitePiece) || (player === 'black' && !isWhitePiece);
+  const isWhitePiece = piece.includes('White');
+  const isBlackPiece = piece.includes('Black');
+  
+  if (player === 'white') {
+    return isWhitePiece;
+  } else {
+    return isBlackPiece;
+  }
 }
 
 function countPiecesOnBoard(gameState: SecretKingBootGameState, player: 'white' | 'black'): number {
@@ -525,4 +577,76 @@ function analyzeMobility(gameState: SecretKingBootGameState): any {
 function analyzeAttackPotential(gameState: SecretKingBootGameState): any {
   // TODO: Analyser le potentiel d'attaque
   return { white: 0, black: 0 };
+}
+
+function getKingMoveAndPlaceMoves(gameState: SecretKingBootGameState): GameAction[] {
+  const moves: GameAction[] = [];
+  const player = gameState.currentPlayer;
+  const turn = gameState.turn;
+  const reserve = player === 'white' ? gameState.whiteReserve : gameState.blackReserve;
+  
+  // Trouver la position du roi
+  let kingPosition: { x: number, y: number } | null = null;
+  
+  for (let rank = 0; rank < 8; rank++) {
+    for (let file = 0; file < 8; file++) {
+      const piece = gameState.board[rank][file];
+      if (piece && piece.includes('King') && isPieceOwnedBy(piece, player)) {
+        kingPosition = { x: file, y: rank };
+        break;
+      }
+    }
+    if (kingPosition) break;
+  }
+  
+  if (!kingPosition) {
+    return moves; // Pas de roi trouvé
+  }
+  
+  // Générer les mouvements possibles du roi
+  const kingMoves = generateMovesForPiece(
+    player === 'white' ? 'WhiteKing' : 'BlackKing',
+    kingPosition,
+    gameState.board,
+    player
+  );
+  
+  // Types de pièces disponibles en réserve
+  const availablePieces: { type: string; count: number }[] = [
+    { type: 'Pawn', count: reserve.pawns },
+    { type: 'Knight', count: reserve.knights },
+    { type: 'Bishop', count: reserve.bishops },
+    { type: 'Rook', count: reserve.rooks },
+    { type: 'Queen', count: reserve.queens }
+  ];
+  
+  // Pour chaque mouvement possible du roi
+  for (const kingMove of kingMoves) {
+    const fromPosition = String.fromCharCode(65 + kingPosition.x) + (kingPosition.y + 1);
+    const toPosition = String.fromCharCode(65 + kingMove.x) + (kingMove.y + 1);
+    
+    // Pour chaque type de pièce disponible en réserve
+    for (const pieceInfo of availablePieces) {
+      if (pieceInfo.count > 0) {
+        // Vérifier les règles spéciales pour les pions
+        if (pieceInfo.type === 'Pawn') {
+          const allowedRanks = player === 'white' ? [1, 2, 3, 4] : [5, 6, 7, 8];
+          if (!allowedRanks.includes(kingPosition.y + 1)) {
+            continue; // Passer cette pièce si elle ne peut pas être placée sur la case du roi
+          }
+        }
+        
+        moves.push({
+          type: 'move_king_and_place',
+          player,
+          turn,
+          from: fromPosition,
+          to: toPosition,
+          piece: pieceInfo.type
+        });
+      }
+    }
+  }
+  
+  return moves;
 }

@@ -99,12 +99,28 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
         <div className={styles.boardSection}>
           <ChessBoard 
             gameState={gameState}
+            selectedAction={selectedAction}
+            possibleMoves={possibleMoves}
             onSquareClick={(position) => {
               // Gérer les clics sur l'échiquier
               if (selectedAction && possibleMoves.length > 0) {
-                const move = possibleMoves.find(m => m.to === position);
+                // Chercher un mouvement correspondant
+                let move = null;
+                
+                if (selectedAction === 'place_piece' || selectedAction === 'place_king') {
+                  // Pour les placements, chercher par position de destination
+                  move = possibleMoves.find(m => m.to === position);
+                } else if (selectedAction === 'move_piece' || selectedAction === 'move_king_and_place') {
+                  // Pour les déplacements, chercher par position de destination
+                  move = possibleMoves.find(m => m.to === position);
+                }
+                
                 if (move) {
                   handleAction(move);
+                } else {
+                  // Si aucun mouvement trouvé, afficher les mouvements possibles pour debugging
+                  console.log('Aucun mouvement trouvé pour la position:', position);
+                  console.log('Mouvements possibles:', possibleMoves);
                 }
               }
             }}
@@ -153,10 +169,17 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
 // Composant échiquier
 interface ChessBoardProps {
   gameState: SecretKingBootGameState;
+  selectedAction?: ActionType | null;
+  possibleMoves?: GameAction[];
   onSquareClick: (position: string) => void;
 }
 
-const ChessBoard: React.FC<ChessBoardProps> = ({ gameState, onSquareClick }) => {
+const ChessBoard: React.FC<ChessBoardProps> = ({ 
+  gameState, 
+  selectedAction, 
+  possibleMoves = [], 
+  onSquareClick 
+}) => {
   return (
     <div className={styles.chessBoard}>
       {Array(8).fill(0).map((_, rank) => (
@@ -165,10 +188,13 @@ const ChessBoard: React.FC<ChessBoardProps> = ({ gameState, onSquareClick }) => 
           const piece = gameState.board[7 - rank][file];
           const isLight = (rank + file) % 2 === 0;
           
+          // Vérifier si cette case est une destination possible
+          const isPossibleMove = possibleMoves.some(move => move.to === position);
+          
           return (
             <div
               key={position}
-              className={`${styles.square} ${isLight ? styles.light : styles.dark}`}
+              className={`${styles.square} ${isLight ? styles.light : styles.dark} ${isPossibleMove ? styles.possible : ''}`}
               onClick={() => onSquareClick(position)}
             >
               {piece && (
@@ -177,6 +203,9 @@ const ChessBoard: React.FC<ChessBoardProps> = ({ gameState, onSquareClick }) => 
                 </div>
               )}
               <div className={styles.squareLabel}>{position}</div>
+              {isPossibleMove && (
+                <div className={styles.moveIndicator}>●</div>
+              )}
             </div>
           );
         })
@@ -297,8 +326,16 @@ function formatMoveDescription(move: GameAction): string {
       return `Placer roi en ${move.to}`;
     case 'generate_pawn':
       return 'Générer un pion';
+    case 'place_piece':
+      return `Placer ${move.piece} en ${move.to}`;
+    case 'move_piece':
+      return `Déplacer ${move.piece} de ${move.from} à ${move.to}`;
+    case 'move_king_and_place':
+      return `Déplacer roi de ${move.from} à ${move.to} + placer ${move.piece}`;
     case 'exchange_pieces':
       return `Échanger ${move.cost} pions → ${move.exchangeTo}`;
+    case 'promote_pawn':
+      return `Promouvoir pion en ${move.piece}`;
     default:
       return `${move.type} ${move.from || ''} → ${move.to || ''}`;
   }
