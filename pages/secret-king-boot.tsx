@@ -25,7 +25,7 @@ export default function SecretKingBootPage() {
           <header className="page-header">
             <h1>La Botte Secrète du Roi</h1>
             <p className="page-description">
-              Une variante d'échecs révolutionnaire où la stratégie commence avant même le premier coup !
+              Une variante d'échecs révolutionnaire où vous commencez avec une réserve de 4 pions, 1 cavalier, 1 fou et 1 tour !
             </p>
           </header>
           
@@ -45,7 +45,7 @@ export default function SecretKingBootPage() {
                 <h3>🏁 Mise en place</h3>
                 <ul>
                   <li>Placez votre roi sur D1 ou E1 (blanc) / D8 ou E8 (noir)</li>
-                  <li>Toutes les autres pièces sont en réserve</li>
+                  <li><strong>Réserve initiale</strong> : 4 pions, 1 cavalier, 1 fou, 1 tour</li>
                   <li>Le but reste l'échec et mat du roi adverse</li>
                 </ul>
               </section>

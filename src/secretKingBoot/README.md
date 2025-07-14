@@ -4,6 +4,8 @@
 
 Cette implémentation de "La Botte Secrète du Roi" est une variante d'échecs complètement intégrée dans votre projet Next.js. Elle respecte les règles définies et offre une interface utilisateur moderne et responsive.
 
+**Configuration initiale** : Chaque joueur commence avec son roi (à placer) et une réserve contenant 4 pions, 1 cavalier, 1 fou et 1 tour.
+
 ## Architecture
 
 ### Structure des fichiers
@@ -47,6 +49,7 @@ Gestion des pièces en réserve :
 ```typescript
 // Création d'une nouvelle partie
 const gameState = createInitialGameState();
+// Chaque joueur a : 4 pions, 1 cavalier, 1 fou, 1 tour en réserve
 
 // Placement des rois (obligatoire)
 const placeKingAction: GameAction = {

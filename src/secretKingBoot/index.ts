@@ -38,7 +38,7 @@ export const GAME_RULES = {
   
   setup: {
     kingPlacement: "Les rois doivent être placés sur D1/E1 (blanc) ou D8/E8 (noir)",
-    initialReserve: "Toutes les pièces (sauf les rois) sont en réserve au début"
+    initialReserve: "Chaque joueur commence avec 4 pions, 1 cavalier, 1 fou et 1 tour en réserve"
   },
   
   actions: {

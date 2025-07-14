@@ -19,18 +19,18 @@ export function createInitialGameState(): SecretKingBootGameState {
     gamePhase: 'setup',
     
     whiteReserve: {
-      pawns: 0,
-      knights: 0,
-      bishops: 0,
-      rooks: 0,
+      pawns: 4,
+      knights: 1,
+      bishops: 1,
+      rooks: 1,
       queens: 0
     },
     
     blackReserve: {
-      pawns: 0,
-      knights: 0,
-      bishops: 0,
-      rooks: 0,
+      pawns: 4,
+      knights: 1,
+      bishops: 1,
+      rooks: 1,
       queens: 0
     },
     
@@ -148,10 +148,22 @@ function validateMovePiece(
     return { valid: false, reason: "Aucune pièce du joueur à cette position" };
   }
   
-  // TODO: Ajouter validation des règles de déplacement spécifiques
-  // (notamment pour les pions avec déplacement multi-cases initial)
+  // Vérifier que la destination est valide
+  const [fromFile, fromRank] = parseAlgebraicPosition(action.from);
+  const [toFile, toRank] = parseAlgebraicPosition(action.to);
   
-  return { valid: true };
+  if (!isValidBoardPosition(fromFile, fromRank) || !isValidBoardPosition(toFile, toRank)) {
+    return { valid: false, reason: "Position invalide" };
+  }
+  
+  // Vérifier qu'on ne capture pas sa propre pièce
+  const targetPiece = getPieceAt(gameState.board, action.to);
+  if (targetPiece && isPieceOwnedBy(targetPiece, action.player)) {
+    return { valid: false, reason: "Impossible de capturer ses propres pièces" };
+  }
+  
+  // Validation spécifique selon le type de pièce
+  return validatePieceMovement(piece, action.from, action.to, gameState.board, action.player);
 }
 
 /**
@@ -285,6 +297,155 @@ function validatePawnPlacement(
   }
   
   return { valid: true };
+}
+
+/**
+ * Parse une position algébrique (ex: "E4") en coordonnées numériques
+ */
+function parseAlgebraicPosition(position: string): [number, number] {
+  const file = position.charCodeAt(0) - 65; // A=0, B=1, ...
+  const rank = parseInt(position[1]) - 1;   // 1=0, 2=1, ...
+  return [file, rank];
+}
+
+/**
+ * Vérifie si une position est valide sur l'échiquier
+ */
+function isValidBoardPosition(file: number, rank: number): boolean {
+  return file >= 0 && file < 8 && rank >= 0 && rank < 8;
+}
+
+/**
+ * Valide le mouvement d'une pièce spécifique
+ */
+function validatePieceMovement(
+  piece: string, 
+  from: string, 
+  to: string, 
+  board: (string | null)[][],
+  player: 'white' | 'black'
+): { valid: boolean; reason?: string } {
+  
+  const [fromFile, fromRank] = parseAlgebraicPosition(from);
+  const [toFile, toRank] = parseAlgebraicPosition(to);
+  
+  const deltaX = toFile - fromFile;
+  const deltaY = toRank - fromRank;
+  
+  // Validation spécifique selon le type de pièce
+  if (piece.includes('King')) {
+    // Roi : une case dans toutes les directions
+    if (Math.abs(deltaX) <= 1 && Math.abs(deltaY) <= 1 && (deltaX !== 0 || deltaY !== 0)) {
+      return { valid: true };
+    }
+    return { valid: false, reason: "Le roi ne peut se déplacer que d'une case" };
+  }
+  
+  else if (piece.includes('Pawn')) {
+    const direction = player === 'white' ? 1 : -1;
+    
+    // Mouvement vers l'avant
+    if (deltaX === 0) {
+      if (deltaY === direction) {
+        // Une case vers l'avant
+        return { valid: true };
+      }
+      else if (deltaY === 2 * direction) {
+        // Deux cases vers l'avant (première règle spéciale des pions dans cette variante)
+        return { valid: true };
+      }
+    }
+    // Capture en diagonale
+    else if (Math.abs(deltaX) === 1 && deltaY === direction) {
+      const targetPiece = board[toRank][toFile];
+      if (targetPiece && !isPieceOwnedBy(targetPiece, player)) {
+        return { valid: true };
+      }
+      return { valid: false, reason: "Le pion ne peut capturer qu'en diagonale" };
+    }
+    
+    return { valid: false, reason: "Mouvement de pion invalide" };
+  }
+  
+  else if (piece.includes('Knight')) {
+    // Cavalier : mouvement en L
+    if ((Math.abs(deltaX) === 2 && Math.abs(deltaY) === 1) || 
+        (Math.abs(deltaX) === 1 && Math.abs(deltaY) === 2)) {
+      return { valid: true };
+    }
+    return { valid: false, reason: "Le cavalier doit se déplacer en L" };
+  }
+  
+  else if (piece.includes('Bishop')) {
+    // Fou : diagonale
+    if (Math.abs(deltaX) === Math.abs(deltaY) && deltaX !== 0) {
+      // Vérifier que le chemin est libre
+      if (isPathClear(fromFile, fromRank, toFile, toRank, board)) {
+        return { valid: true };
+      }
+      return { valid: false, reason: "Le chemin du fou est bloqué" };
+    }
+    return { valid: false, reason: "Le fou doit se déplacer en diagonale" };
+  }
+  
+  else if (piece.includes('Rook')) {
+    // Tour : ligne droite
+    if ((deltaX === 0 && deltaY !== 0) || (deltaY === 0 && deltaX !== 0)) {
+      // Vérifier que le chemin est libre
+      if (isPathClear(fromFile, fromRank, toFile, toRank, board)) {
+        return { valid: true };
+      }
+      return { valid: false, reason: "Le chemin de la tour est bloqué" };
+    }
+    return { valid: false, reason: "La tour doit se déplacer en ligne droite" };
+  }
+  
+  else if (piece.includes('Queen')) {
+    // Dame : combinaison tour + fou
+    const isRookMove = (deltaX === 0 && deltaY !== 0) || (deltaY === 0 && deltaX !== 0);
+    const isBishopMove = Math.abs(deltaX) === Math.abs(deltaY) && deltaX !== 0;
+    
+    if (isRookMove || isBishopMove) {
+      if (isPathClear(fromFile, fromRank, toFile, toRank, board)) {
+        return { valid: true };
+      }
+      return { valid: false, reason: "Le chemin de la dame est bloqué" };
+    }
+    return { valid: false, reason: "Mouvement de dame invalide" };
+  }
+  
+  return { valid: false, reason: "Type de pièce non reconnu" };
+}
+
+/**
+ * Vérifie si le chemin entre deux positions est libre
+ */
+function isPathClear(
+  fromFile: number, 
+  fromRank: number, 
+  toFile: number, 
+  toRank: number, 
+  board: (string | null)[][]
+): boolean {
+  const deltaX = toFile - fromFile;
+  const deltaY = toRank - fromRank;
+  
+  const stepX = deltaX === 0 ? 0 : deltaX / Math.abs(deltaX);
+  const stepY = deltaY === 0 ? 0 : deltaY / Math.abs(deltaY);
+  
+  let currentX = fromFile + stepX;
+  let currentY = fromRank + stepY;
+  
+  // Vérifier chaque case intermédiaire
+  while (currentX !== toFile || currentY !== toRank) {
+    if (board[currentY][currentX] !== null) {
+      return false; // Chemin bloqué
+    }
+    currentX += stepX;
+    currentY += stepY;
+  }
+  
+  return true;
 }
 
 // Fonctions utilitaires

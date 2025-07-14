@@ -210,9 +210,222 @@ function getKingPlacementMoves(player: 'white' | 'black', turn: number): GameAct
 }
 
 function getPieceMovementMoves(gameState: SecretKingBootGameState): GameAction[] {
-  // TODO: Implémenter la génération des coups de déplacement
-  // En utilisant la logique existante du jeu d'échecs
-  return [];
+  const moves: GameAction[] = [];
+  const player = gameState.currentPlayer;
+  const turn = gameState.turn;
+  
+  // Parcourir l'échiquier pour trouver les pièces du joueur actuel
+  for (let rank = 0; rank < 8; rank++) {
+    for (let file = 0; file < 8; file++) {
+      const piece = gameState.board[rank][file];
+      if (piece && isPieceOwnedBy(piece, player)) {
+        const fromPosition = String.fromCharCode(65 + file) + (rank + 1);
+        
+        // Générer les coups possibles pour cette pièce
+        const pieceMoves = generateMovesForPiece(
+          piece, 
+          { x: file, y: rank }, 
+          gameState.board,
+          player
+        );
+        
+        // Convertir en GameAction
+        for (const move of pieceMoves) {
+          const toPosition = String.fromCharCode(65 + move.x) + (move.y + 1);
+          moves.push({
+            type: 'move_piece',
+            player,
+            turn,
+            from: fromPosition,
+            to: toPosition,
+            piece: piece
+          });
+        }
+      }
+    }
+  }
+  
+  return moves;
+}
+
+/**
+ * Génère les coups possibles pour une pièce spécifique
+ */
+function generateMovesForPiece(
+  piece: string, 
+  position: { x: number, y: number }, 
+  board: (string | null)[][],
+  player: 'white' | 'black'
+): { x: number, y: number }[] {
+  
+  const moves: { x: number, y: number }[] = [];
+  
+  if (piece.includes('King')) {
+    // Mouvements du roi : une case dans toutes les directions
+    const kingMoves = [
+      { dx: -1, dy: -1 }, { dx: 0, dy: -1 }, { dx: 1, dy: -1 },
+      { dx: -1, dy: 0 },                     { dx: 1, dy: 0 },
+      { dx: -1, dy: 1 },  { dx: 0, dy: 1 },  { dx: 1, dy: 1 }
+    ];
+    
+    for (const move of kingMoves) {
+      const newX = position.x + move.dx;
+      const newY = position.y + move.dy;
+      
+      if (isValidSquare(newX, newY)) {
+        const targetPiece = board[newY][newX];
+        
+        // Case vide ou pièce ennemie
+        if (!targetPiece || !isPieceOwnedBy(targetPiece, player)) {
+          moves.push({ x: newX, y: newY });
+        }
+      }
+    }
+  }
+  
+  else if (piece.includes('Pawn')) {
+    // Mouvements des pions - version simplifiée
+    const direction = player === 'white' ? 1 : -1;
+    const startRank = player === 'white' ? 1 : 6;
+    
+    // Avancement d'une case
+    const oneStep = position.y + direction;
+    if (isValidSquare(position.x, oneStep) && !board[oneStep][position.x]) {
+      moves.push({ x: position.x, y: oneStep });
+      
+      // Avancement de deux cases depuis la position initiale
+      if (position.y === startRank) {
+        const twoSteps = position.y + (2 * direction);
+        if (isValidSquare(position.x, twoSteps) && !board[twoSteps][position.x]) {
+          moves.push({ x: position.x, y: twoSteps });
+        }
+      }
+    }
+    
+    // Captures diagonales
+    for (const dx of [-1, 1]) {
+      const captureX = position.x + dx;
+      const captureY = position.y + direction;
+      
+      if (isValidSquare(captureX, captureY)) {
+        const targetPiece = board[captureY][captureX];
+        if (targetPiece && !isPieceOwnedBy(targetPiece, player)) {
+          moves.push({ x: captureX, y: captureY });
+        }
+      }
+    }
+  }
+  
+  else if (piece.includes('Knight')) {
+    // Mouvements du cavalier
+    const knightMoves = [
+      { dx: -2, dy: -1 }, { dx: -2, dy: 1 }, { dx: -1, dy: -2 }, { dx: -1, dy: 2 },
+      { dx: 1, dy: -2 },  { dx: 1, dy: 2 },  { dx: 2, dy: -1 },  { dx: 2, dy: 1 }
+    ];
+    
+    for (const move of knightMoves) {
+      const newX = position.x + move.dx;
+      const newY = position.y + move.dy;
+      
+      if (isValidSquare(newX, newY)) {
+        const targetPiece = board[newY][newX];
+        if (!targetPiece || !isPieceOwnedBy(targetPiece, player)) {
+          moves.push({ x: newX, y: newY });
+        }
+      }
+    }
+  }
+  
+  else if (piece.includes('Bishop')) {
+    // Mouvements du fou : diagonales
+    const directions = [
+      { dx: 1, dy: 1 }, { dx: 1, dy: -1 }, { dx: -1, dy: 1 }, { dx: -1, dy: -1 }
+    ];
+    
+    for (const dir of directions) {
+      for (let i = 1; i < 8; i++) {
+        const newX = position.x + (dir.dx * i);
+        const newY = position.y + (dir.dy * i);
+        
+        if (!isValidSquare(newX, newY)) break;
+        
+        const targetPiece = board[newY][newX];
+        
+        if (!targetPiece) {
+          moves.push({ x: newX, y: newY });
+        } else {
+          if (!isPieceOwnedBy(targetPiece, player)) {
+            moves.push({ x: newX, y: newY });
+          }
+          break; // Arrêter dans cette direction
+        }
+      }
+    }
+  }
+  
+  else if (piece.includes('Rook')) {
+    // Mouvements de la tour : lignes et colonnes
+    const directions = [
+      { dx: 0, dy: 1 }, { dx: 0, dy: -1 }, { dx: 1, dy: 0 }, { dx: -1, dy: 0 }
+    ];
+    
+    for (const dir of directions) {
+      for (let i = 1; i < 8; i++) {
+        const newX = position.x + (dir.dx * i);
+        const newY = position.y + (dir.dy * i);
+        
+        if (!isValidSquare(newX, newY)) break;
+        
+        const targetPiece = board[newY][newX];
+        
+        if (!targetPiece) {
+          moves.push({ x: newX, y: newY });
+        } else {
+          if (!isPieceOwnedBy(targetPiece, player)) {
+            moves.push({ x: newX, y: newY });
+          }
+          break; // Arrêter dans cette direction
+        }
+      }
+    }
+  }
+  
+  else if (piece.includes('Queen')) {
+    // Mouvements de la dame : combinaison tour + fou
+    const directions = [
+      { dx: 0, dy: 1 }, { dx: 0, dy: -1 }, { dx: 1, dy: 0 }, { dx: -1, dy: 0 },
+      { dx: 1, dy: 1 }, { dx: 1, dy: -1 }, { dx: -1, dy: 1 }, { dx: -1, dy: -1 }
+    ];
+    
+    for (const dir of directions) {
+      for (let i = 1; i < 8; i++) {
+        const newX = position.x + (dir.dx * i);
+        const newY = position.y + (dir.dy * i);
+        
+        if (!isValidSquare(newX, newY)) break;
+        
+        const targetPiece = board[newY][newX];
+        
+        if (!targetPiece) {
+          moves.push({ x: newX, y: newY });
+        } else {
+          if (!isPieceOwnedBy(targetPiece, player)) {
+            moves.push({ x: newX, y: newY });
+          }
+          break; // Arrêter dans cette direction
+        }
+      }
+    }
+  }
+  
+  return moves;
+}
+
+/**
+ * Vérifie si une case est valide sur l'échiquier
+ */
+function isValidSquare(x: number, y: number): boolean {
+  return x >= 0 && x < 8 && y >= 0 && y < 8;
 }
 
 function getPiecePlacementMoves(gameState: SecretKingBootGameState): GameAction[] {

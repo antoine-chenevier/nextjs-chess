@@ -18,8 +18,16 @@ describe('Secret King Boot Game', () => {
       expect(gameState.gamePhase).to.equal('setup');
       expect(gameState.whiteKingPosition).to.be.null;
       expect(gameState.blackKingPosition).to.be.null;
-      expect(gameState.whiteReserve.pawns).to.equal(0);
-      expect(gameState.blackReserve.pawns).to.equal(0);
+      expect(gameState.whiteReserve.pawns).to.equal(4);
+      expect(gameState.whiteReserve.knights).to.equal(1);
+      expect(gameState.whiteReserve.bishops).to.equal(1);
+      expect(gameState.whiteReserve.rooks).to.equal(1);
+      expect(gameState.whiteReserve.queens).to.equal(0);
+      expect(gameState.blackReserve.pawns).to.equal(4);
+      expect(gameState.blackReserve.knights).to.equal(1);
+      expect(gameState.blackReserve.bishops).to.equal(1);
+      expect(gameState.blackReserve.rooks).to.equal(1);
+      expect(gameState.blackReserve.queens).to.equal(0);
     });
   });
 
@@ -101,6 +109,7 @@ describe('Secret King Boot Game', () => {
     it('should apply pawn generation correctly', () => {
       const gameState = createInitialGameState();
       gameState.gamePhase = 'playing';
+      // gameState commence avec 4 pions, donc on peut en générer plus
       
       const action: GameAction = {
         type: 'generate_pawn',
@@ -109,7 +118,7 @@ describe('Secret King Boot Game', () => {
       };
       
       const newState = applyAction(gameState, action);
-      expect(newState.whiteReserve.pawns).to.equal(1);
+      expect(newState.whiteReserve.pawns).to.equal(5); // 4 + 1
       expect(newState.currentPlayer).to.equal('black');
     });
   });
@@ -218,6 +227,65 @@ describe('Secret King Boot Game', () => {
       const validation = isValidAction(gameState, action);
       expect(validation.valid).to.be.false;
       expect(validation.reason).to.include("Ce n'est pas le tour");
+    });
+  });
+  
+  describe('Initial Reserve Usage', () => {
+    it('should allow placing pieces from initial reserve', () => {
+      let gameState = createInitialGameState();
+      
+      // Placer les rois pour passer en phase de jeu
+      const whiteKingAction: GameAction = {
+        type: 'place_king',
+        player: 'white',
+        turn: 1,
+        to: 'E1'
+      };
+      gameState = applyAction(gameState, whiteKingAction);
+      
+      const blackKingAction: GameAction = {
+        type: 'place_king',
+        player: 'black',
+        turn: 1,
+        to: 'D8'
+      };
+      gameState = applyAction(gameState, blackKingAction);
+      
+      // Maintenant en phase 'playing', blanc peut placer une pièce de sa réserve initiale
+      const placePawnAction: GameAction = {
+        type: 'place_piece',
+        player: 'white',
+        turn: 2,
+        piece: 'Pawn',
+        to: 'D2'
+      };
+      
+      const validation = isValidAction(gameState, placePawnAction);
+      expect(validation.valid).to.be.true;
+      
+      const newState = applyAction(gameState, placePawnAction);
+      expect(newState.whiteReserve.pawns).to.equal(3); // 4 - 1
+      expect(newState.board[1][3]).to.equal('WhitePawn'); // D2 = [1][3]
+    });
+    
+    it('should allow placing knight from initial reserve', () => {
+      let gameState = createInitialGameState();
+      gameState.gamePhase = 'playing'; // Accélérer pour le test
+      
+      const placeKnightAction: GameAction = {
+        type: 'place_piece',
+        player: 'white',
+        turn: 1,
+        piece: 'Knight',
+        to: 'B1'
+      };
+      
+      const validation = isValidAction(gameState, placeKnightAction);
+      expect(validation.valid).to.be.true;
+      
+      const newState = applyAction(gameState, placeKnightAction);
+      expect(newState.whiteReserve.knights).to.equal(0); // 1 - 1
+      expect(newState.board[0][1]).to.equal('WhiteKnight'); // B1 = [0][1]
     });
   });
 });
