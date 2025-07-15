@@ -523,6 +523,253 @@ function validatePawnMovement(
   return { valid: false, reason: "Mouvement de pion invalide" };
 }
 
+/**
+ * Trouve la position du roi sur l'échiquier
+ */
+function findKingPosition(board: (string | null)[][], player: 'white' | 'black'): [number, number] | null {
+  const kingPiece = player === 'white' ? 'WhiteKing' : 'BlackKing';
+  
+  for (let rank = 0; rank < 8; rank++) {
+    for (let file = 0; file < 8; file++) {
+      if (board[rank][file] === kingPiece) {
+        return [file, rank];
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Vérifie si une case est attaquée par l'adversaire
+ */
+function isSquareAttacked(
+  board: (string | null)[][],
+  targetFile: number,
+  targetRank: number,
+  byPlayer: 'white' | 'black'
+): boolean {
+  
+  // Parcourir toutes les pièces de l'adversaire
+  for (let rank = 0; rank < 8; rank++) {
+    for (let file = 0; file < 8; file++) {
+      const piece = board[rank][file];
+      if (!piece || !isPieceOwnedBy(piece, byPlayer)) {
+        continue;
+      }
+      
+      // Vérifier si cette pièce peut attaquer la case cible
+      if (canPieceAttackSquare(board, piece, file, rank, targetFile, targetRank, byPlayer)) {
+        return true;
+      }
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Vérifie si une pièce peut attaquer une case donnée
+ */
+function canPieceAttackSquare(
+  board: (string | null)[][],
+  piece: string,
+  fromFile: number,
+  fromRank: number,
+  toFile: number,
+  toRank: number,
+  player: 'white' | 'black'
+): boolean {
+  
+  const deltaX = toFile - fromFile;
+  const deltaY = toRank - fromRank;
+  
+  if (piece.includes('Pawn')) {
+    const direction = player === 'white' ? 1 : -1;
+    // Les pions attaquent en diagonale
+    return Math.abs(deltaX) === 1 && deltaY === direction;
+  }
+  
+  else if (piece.includes('King')) {
+    // Roi attaque dans toutes les directions adjacentes
+    return Math.abs(deltaX) <= 1 && Math.abs(deltaY) <= 1 && (deltaX !== 0 || deltaY !== 0);
+  }
+  
+  else if (piece.includes('Knight')) {
+    // Cavalier attaque en L
+    return (Math.abs(deltaX) === 2 && Math.abs(deltaY) === 1) || 
+           (Math.abs(deltaX) === 1 && Math.abs(deltaY) === 2);
+  }
+  
+  else if (piece.includes('Bishop')) {
+    // Fou attaque en diagonale
+    if (Math.abs(deltaX) === Math.abs(deltaY) && deltaX !== 0) {
+      return isPathClear(fromFile, fromRank, toFile, toRank, board);
+    }
+  }
+  
+  else if (piece.includes('Rook')) {
+    // Tour attaque en ligne droite
+    if ((deltaX === 0 && deltaY !== 0) || (deltaY === 0 && deltaX !== 0)) {
+      return isPathClear(fromFile, fromRank, toFile, toRank, board);
+    }
+  }
+  
+  else if (piece.includes('Queen')) {
+    // Dame combine tour et fou
+    const isRookMove = (deltaX === 0 && deltaY !== 0) || (deltaY === 0 && deltaX !== 0);
+    const isBishopMove = Math.abs(deltaX) === Math.abs(deltaY) && deltaX !== 0;
+    
+    if (isRookMove || isBishopMove) {
+      return isPathClear(fromFile, fromRank, toFile, toRank, board);
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Vérifie si le roi est en échec
+ */
+export function isKingInCheck(gameState: SecretKingBootGameState, player: 'white' | 'black'): boolean {
+  const kingPosition = findKingPosition(gameState.board, player);
+  if (!kingPosition) {
+    return false; // Pas de roi trouvé
+  }
+  
+  const [kingFile, kingRank] = kingPosition;
+  const opponent = player === 'white' ? 'black' : 'white';
+  
+  return isSquareAttacked(gameState.board, kingFile, kingRank, opponent);
+}
+
+/**
+ * Vérifie si le roi est en échec et mat
+ */
+export function isKingInCheckmate(gameState: SecretKingBootGameState, player: 'white' | 'black'): boolean {
+  // D'abord vérifier si le roi est en échec
+  if (!isKingInCheck(gameState, player)) {
+    return false;
+  }
+  
+  // Essayer tous les mouvements possibles pour voir si on peut sortir de l'échec
+  return !hasLegalMoves(gameState, player);
+}
+
+/**
+ * Vérifie si le joueur a des coups légaux disponibles
+ */
+function hasLegalMoves(gameState: SecretKingBootGameState, player: 'white' | 'black'): boolean {
+  // Parcourir toutes les pièces du joueur
+  for (let rank = 0; rank < 8; rank++) {
+    for (let file = 0; file < 8; file++) {
+      const piece = gameState.board[rank][file];
+      if (!piece || !isPieceOwnedBy(piece, player)) {
+        continue;
+      }
+      
+      // Essayer tous les mouvements possibles pour cette pièce
+      const fromPosition = String.fromCharCode(65 + file) + (rank + 1);
+      
+      for (let toRank = 0; toRank < 8; toRank++) {
+        for (let toFile = 0; toFile < 8; toFile++) {
+          const toPosition = String.fromCharCode(65 + toFile) + (toRank + 1);
+          
+          // Tester ce mouvement
+          const moveAction: GameAction = {
+            type: 'move_piece',
+            player,
+            turn: gameState.turn,
+            from: fromPosition,
+            to: toPosition
+          };
+          
+          // Vérifier si le mouvement est légal (ne met pas le roi en échec)
+          if (isValidAction(gameState, moveAction).valid && isMoveLegal(gameState, moveAction)) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Vérifie si un mouvement est légal (ne met pas son propre roi en échec)
+ */
+function isMoveLegal(gameState: SecretKingBootGameState, action: GameAction): boolean {
+  // Simuler le mouvement
+  const testState = JSON.parse(JSON.stringify(gameState)) as SecretKingBootGameState;
+  
+  // Appliquer le mouvement dans l'état de test
+  if (action.from && action.to) {
+    const [fromFile, fromRank] = parseAlgebraicPosition(action.from);
+    const [toFile, toRank] = parseAlgebraicPosition(action.to);
+    
+    const piece = testState.board[fromRank][fromFile];
+    testState.board[toRank][toFile] = piece;
+    testState.board[fromRank][fromFile] = null;
+    
+    // Vérifier si le roi est en échec après ce mouvement
+    return !isKingInCheck(testState, action.player);
+  }
+  
+  return false;
+}
+
+/**
+ * Vérifie si la partie est terminée par pat (roi pas en échec mais aucun coup légal)
+ */
+export function isStalemate(gameState: SecretKingBootGameState, player: 'white' | 'black'): boolean {
+  // Le roi ne doit pas être en échec
+  if (isKingInCheck(gameState, player)) {
+    return false;
+  }
+  
+  // Mais il ne doit y avoir aucun coup légal
+  return !hasLegalMoves(gameState, player);
+}
+
+/**
+ * Obtient le statut de la partie (en cours, échec, échec et mat, pat)
+ */
+export function getGameStatus(gameState: SecretKingBootGameState): {
+  status: 'playing' | 'check' | 'checkmate' | 'stalemate';
+  player?: 'white' | 'black';
+  winner?: 'white' | 'black' | 'draw';
+} {
+  const currentPlayer = gameState.currentPlayer;
+  
+  if (isKingInCheckmate(gameState, currentPlayer)) {
+    const winner = currentPlayer === 'white' ? 'black' : 'white';
+    return {
+      status: 'checkmate',
+      player: currentPlayer,
+      winner
+    };
+  }
+  
+  if (isStalemate(gameState, currentPlayer)) {
+    return {
+      status: 'stalemate',
+      player: currentPlayer,
+      winner: 'draw'
+    };
+  }
+  
+  if (isKingInCheck(gameState, currentPlayer)) {
+    return {
+      status: 'check',
+      player: currentPlayer
+    };
+  }
+  
+  return {
+    status: 'playing'
+  };
+}
+
 // Fonctions utilitaires
 
 function getPieceAt(board: (string | null)[][], position: string): string | null {

@@ -14,6 +14,13 @@ export interface SecretKingBootGameState {
   turn: number;
   gamePhase: 'setup' | 'playing' | 'ended';
   
+  // Statut de la partie (échec, échec et mat, etc.)
+  gameStatus?: {
+    status: 'playing' | 'check' | 'checkmate' | 'stalemate';
+    player?: 'white' | 'black';
+    winner?: 'white' | 'black' | 'draw';
+  };
+  
   // Réserves des joueurs
   whiteReserve: Reserve;
   blackReserve: Reserve;

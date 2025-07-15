@@ -5,6 +5,7 @@ import {
   RESERVE_LIMITS,
   EXCHANGE_COSTS
 } from './types';
+import { getGameStatus } from './gameLogic';
 
 /**
  * Applique une action validée sur l'état du jeu
@@ -42,8 +43,28 @@ export function applyAction(
       return applyPromotePawn(newState, action);
     
     default:
-      return newState;
+      // Après toute action qui modifie l'état du jeu, vérifier le statut
+      const finalState = updateGameStatus(newState);
+      return finalState;
   }
+}
+
+/**
+ * Met à jour le statut du jeu (échec, échec et mat, pat)
+ */
+function updateGameStatus(gameState: SecretKingBootGameState): SecretKingBootGameState {
+  // Seulement vérifier en phase de jeu
+  if (gameState.gamePhase === 'playing') {
+    const status = getGameStatus(gameState);
+    gameState.gameStatus = status;
+    
+    // Si la partie est terminée, changer la phase
+    if (status.status === 'checkmate' || status.status === 'stalemate') {
+      gameState.gamePhase = 'ended';
+    }
+  }
+  
+  return gameState;
 }
 
 /**
@@ -95,7 +116,8 @@ function applyGeneratePawn(
     gameState.turn++;
   }
   
-  return gameState;
+  // Mettre à jour le statut du jeu
+  return updateGameStatus(gameState);
 }
 
 /**
@@ -146,7 +168,8 @@ function applyMovePiece(
     gameState.turn++;
   }
   
-  return gameState;
+  // Mettre à jour le statut du jeu
+  return updateGameStatus(gameState);
 }
 
 /**
@@ -174,7 +197,8 @@ function applyMoveKingAndPlace(
   
   removePieceFromReserve(reserve, action.piece!);
   
-  return gameState;
+  // Mettre à jour le statut du jeu après le placement
+  return updateGameStatus(gameState);
 }
 
 /**
@@ -203,7 +227,8 @@ function applyPlacePiece(
     gameState.turn++;
   }
   
-  return gameState;
+  // Mettre à jour le statut du jeu
+  return updateGameStatus(gameState);
 }
 
 /**
@@ -230,7 +255,8 @@ function applyExchangePieces(
     gameState.turn++;
   }
   
-  return gameState;
+  // Mettre à jour le statut du jeu
+  return updateGameStatus(gameState);
 }
 
 /**
@@ -253,7 +279,8 @@ function applyPromotePawn(
     gameState.turn++;
   }
   
-  return gameState;
+  // Mettre à jour le statut du jeu
+  return updateGameStatus(gameState);
 }
 
 // Fonctions utilitaires

@@ -256,6 +256,24 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
   
   const availableActions = getAvailableActions(gameState);
   
+  // Formater le statut du jeu pour l'affichage
+  const getGameStatusDisplay = () => {
+    if (!gameState.gameStatus) return '';
+    
+    switch (gameState.gameStatus.status) {
+      case 'playing':
+        return '';
+      case 'check':
+        return gameState.gameStatus.player === 'white' ? '⚠️ Blanc en échec' : '⚠️ Noir en échec';
+      case 'checkmate':
+        return gameState.gameStatus.player === 'white' ? '♛ Échec et mat - Noir gagne!' : '♛ Échec et mat - Blanc gagne!';
+      case 'stalemate':
+        return '🤝 Pat - Match nul';
+      default:
+        return '';
+    }
+  };
+  
   return (
     <div className={styles.secretKingBootGame}>
       <div className={styles.gameHeader}>
@@ -264,6 +282,9 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
           <div>Joueur: {gameState.currentPlayer === 'white' ? 'Blanc' : 'Noir'}</div>
           <div>Tour: {gameState.turn}</div>
           <div>Phase: {gameState.gamePhase === 'setup' ? 'Placement' : 'Jeu'}</div>
+          {getGameStatusDisplay() && (
+            <div className={styles.gameStatus}>{getGameStatusDisplay()}</div>
+          )}
         </div>
         <button onClick={resetGame} className={styles.resetButton}>
           Nouvelle partie
