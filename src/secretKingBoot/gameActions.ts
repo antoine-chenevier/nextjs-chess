@@ -132,6 +132,13 @@ function applyMovePiece(
   gameState.board[toRank][toFile] = piece;
   gameState.board[fromRank][fromFile] = null;
   
+  // Vérifier si c'est un pion qui atteint la dernière rangée (promotion automatique)
+  if (piece && piece.includes('Pawn') && isPawnPromotion(action.from!, action.to!, action.player)) {
+    // Promotion automatique en dame (peut être modifié selon les besoins)
+    const promotionPiece = formatPieceForBoard('queen', action.player);
+    gameState.board[toRank][toFile] = promotionPiece;
+  }
+  
   // Passer au joueur suivant
   gameState.currentPlayer = gameState.currentPlayer === 'white' ? 'black' : 'white';
   
@@ -320,4 +327,36 @@ function removePieceFromReserve(reserve: Reserve, pieceType: string): void {
   if (reserveKey && reserveKey in reserve && (reserve[reserveKey] as number) > 0) {
     (reserve[reserveKey] as number)--;
   }
+}
+
+/**
+ * Vérifie si un mouvement de pion nécessite une promotion
+ */
+export function isPawnPromotion(
+  from: string,
+  to: string,
+  player: 'white' | 'black'
+): boolean {
+  const toRank = parseInt(to[1]);
+  const promotionRank = player === 'white' ? 8 : 1;
+  return toRank === promotionRank;
+}
+
+/**
+ * Crée une action de promotion automatique
+ */
+export function createPromotionAction(
+  from: string,
+  to: string,
+  player: 'white' | 'black',
+  promoteTo: string = 'queen' // Promotion par défaut en dame
+): GameAction {
+  return {
+    type: 'promote_pawn',
+    player,
+    turn: 0, // Sera mis à jour par le système
+    from,
+    to,
+    piece: player === 'white' ? `White${promoteTo}` : `Black${promoteTo}`
+  };
 }

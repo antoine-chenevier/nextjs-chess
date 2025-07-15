@@ -75,8 +75,14 @@ export const VALID_KING_POSITIONS = {
   black: ['D8', 'E8'] as const
 } as const;
 
-// Zones de placement des pions
+// Zones de placement des pions (rangs où les rois peuvent placer des pions)
 export const PAWN_ZONES = {
-  white: [1, 2, 3, 4], // Rangs 1-4
-  black: [5, 6, 7, 8]  // Rangs 5-8
+  white: [1, 2, 3, 4], // Rangs 1-4 (moitié blanche de l'échiquier)
+  black: [5, 6, 7, 8]  // Rangs 5-8 (moitié noire de l'échiquier)
+} as const;
+
+// Ligne médiane de l'échiquier pour les règles de mouvement des pions
+export const MIDDLE_LINE = {
+  white: 4, // Rang 5 (après lequel les pions blancs ne peuvent plus faire de grands bonds)
+  black: 3  // Rang 4 (après lequel les pions noirs ne peuvent plus faire de grands bonds)
 } as const;

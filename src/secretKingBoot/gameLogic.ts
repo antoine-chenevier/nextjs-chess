@@ -6,7 +6,8 @@ import {
   RESERVE_LIMITS,
   EXCHANGE_COSTS,
   VALID_KING_POSITIONS,
-  PAWN_ZONES
+  PAWN_ZONES,
+  MIDDLE_LINE
 } from './types';
 
 /**
@@ -272,8 +273,36 @@ function validatePromotePawn(
   action: GameAction
 ): { valid: boolean; reason?: string } {
   
-  // TODO: Implémenter la validation de promotion
+  if (!action.from || !action.to || !action.piece) {
+    return { valid: false, reason: "Position du pion et type de promotion requis" };
+  }
+  
+  // Vérifier qu'il y a bien un pion à la position de départ
+  const piece = getPieceAt(gameState.board, action.from);
+  if (!piece || !piece.includes('Pawn')) {
+    return { valid: false, reason: "Aucun pion à cette position" };
+  }
+  
+  // Vérifier que le pion appartient au joueur
+  if (!isPieceOwnedBy(piece, action.player)) {
+    return { valid: false, reason: "Ce pion n'appartient pas au joueur" };
+  }
+  
   // Vérifier que le pion est sur la dernière rangée
+  const toRank = parseInt(action.to[1]);
+  const expectedRank = action.player === 'white' ? 8 : 1;
+  
+  if (toRank !== expectedRank) {
+    return { valid: false, reason: `Le pion doit être sur la rangée ${expectedRank} pour être promu` };
+  }
+  
+  // Vérifier que la pièce de promotion est valide
+  const validPromotions = ['queen', 'rook', 'bishop', 'knight'];
+  const promotionType = action.piece.toLowerCase().replace('white', '').replace('black', '');
+  
+  if (!validPromotions.includes(promotionType)) {
+    return { valid: false, reason: "Promotion invalide, choisir parmi: dame, tour, fou, cavalier" };
+  }
   
   return { valid: true };
 }
@@ -342,29 +371,7 @@ function validatePieceMovement(
   }
   
   else if (piece.includes('Pawn')) {
-    const direction = player === 'white' ? 1 : -1;
-    
-    // Mouvement vers l'avant
-    if (deltaX === 0) {
-      if (deltaY === direction) {
-        // Une case vers l'avant
-        return { valid: true };
-      }
-      else if (deltaY === 2 * direction) {
-        // Deux cases vers l'avant (première règle spéciale des pions dans cette variante)
-        return { valid: true };
-      }
-    }
-    // Capture en diagonale
-    else if (Math.abs(deltaX) === 1 && deltaY === direction) {
-      const targetPiece = board[toRank][toFile];
-      if (targetPiece && !isPieceOwnedBy(targetPiece, player)) {
-        return { valid: true };
-      }
-      return { valid: false, reason: "Le pion ne peut capturer qu'en diagonale" };
-    }
-    
-    return { valid: false, reason: "Mouvement de pion invalide" };
+    return validatePawnMovement(player, fromRank, toRank, deltaX, deltaY, board, toFile);
   }
   
   else if (piece.includes('Knight')) {
@@ -446,6 +453,74 @@ function isPathClear(
   }
   
   return true;
+}
+
+/**
+ * Valide le mouvement spécifique des pions selon les règles de la variante
+ */
+function validatePawnMovement(
+  player: 'white' | 'black',
+  fromRank: number,
+  toRank: number,
+  deltaX: number,
+  deltaY: number,
+  board: (string | null)[][],
+  toFile: number
+): { valid: boolean; reason?: string } {
+  
+  const direction = player === 'white' ? 1 : -1;
+  const playerZone = PAWN_ZONES[player].map(rank => rank - 1); // Convertir en index 0-based
+  const middleLine = MIDDLE_LINE[player];
+  
+  // Mouvement vers l'avant uniquement (pas de recul)
+  if (deltaY * direction <= 0) {
+    return { valid: false, reason: "Les pions ne peuvent qu'avancer" };
+  }
+  
+  // Mouvement en ligne droite (pas de capture)
+  if (deltaX === 0) {
+    const targetPiece = board[toRank][toFile];
+    if (targetPiece) {
+      return { valid: false, reason: "Case occupée" };
+    }
+    
+    // Si le pion est dans sa zone de départ (moitié de l'échiquier)
+    if (playerZone.includes(fromRank)) {
+      // Peut se déplacer de 1 à plusieurs cases jusqu'à la ligne médiane
+      if ((player === 'white' && toRank <= middleLine) || 
+          (player === 'black' && toRank >= middleLine)) {
+        
+        // Vérifier que le chemin est libre
+        const step = direction;
+        for (let rank = fromRank + step; rank !== toRank + step; rank += step) {
+          if (board[rank] && board[rank][toFile]) {
+            return { valid: false, reason: "Chemin bloqué" };
+          }
+        }
+        return { valid: true };
+      } else {
+        return { valid: false, reason: "Les pions ne peuvent pas dépasser la ligne médiane en un coup depuis leur zone de départ" };
+      }
+    } else {
+      // Après avoir franchi la ligne médiane, mouvement d'une case seulement
+      if (Math.abs(deltaY) === 1) {
+        return { valid: true };
+      } else {
+        return { valid: false, reason: "Après la ligne médiane, les pions ne peuvent avancer que d'une case" };
+      }
+    }
+  }
+  
+  // Capture en diagonale (règle classique)
+  else if (Math.abs(deltaX) === 1 && Math.abs(deltaY) === 1) {
+    const targetPiece = board[toRank][toFile];
+    if (targetPiece && !isPieceOwnedBy(targetPiece, player)) {
+      return { valid: true };
+    }
+    return { valid: false, reason: "Le pion ne peut capturer qu'une pièce adverse en diagonale" };
+  }
+  
+  return { valid: false, reason: "Mouvement de pion invalide" };
 }
 
 // Fonctions utilitaires
