@@ -37,6 +37,7 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
   const [gameAnalysis, setGameAnalysis] = useState(null);
   const [selectedPieceForKingMove, setSelectedPieceForKingMove] = useState<string | null>(null);
   const [selectedPieceForPlacement, setSelectedPieceForPlacement] = useState<string | null>(null);
+  const [selectedPiecePosition, setSelectedPiecePosition] = useState<string | null>(null);
   
   // Effectuer une action
   const handleAction = useCallback((action: GameAction) => {
@@ -90,6 +91,7 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
     setPossibleMoves([]);
     setSelectedPieceForKingMove(null);
     setSelectedPieceForPlacement(null);
+    setSelectedPiecePosition(null);
     
   }, [gameState]);
   
@@ -218,6 +220,14 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
       return;
     }
     
+    // Pour "move_piece", d'abord sélectionner une pièce sur l'échiquier
+    if (actionType === 'move_piece') {
+      setSelectedAction(actionType);
+      setSelectedPiecePosition(null); // Réinitialiser la sélection
+      setPossibleMoves([]); // Pas de mouvements jusqu'à ce qu'une pièce soit sélectionnée
+      return;
+    }
+    
     // Pour "exchange_pieces", afficher directement les échanges possibles
     if (actionType === 'exchange_pieces') {
       setSelectedAction(actionType);
@@ -239,6 +249,8 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
     setPossibleMoves([]);
     setGameAnalysis(null);
     setSelectedPieceForKingMove(null);
+    setSelectedPieceForPlacement(null);
+    setSelectedPiecePosition(null);
     setSelectedPieceForPlacement(null);
   }, []);
   
@@ -267,11 +279,30 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
             possibleMoves={possibleMoves}
             onSquareClick={(position) => {
               // Gérer les clics sur l'échiquier
+              
+              // Si on est en mode "move_piece" et qu'aucune pièce n'est sélectionnée
+              if (selectedAction === 'move_piece' && !selectedPiecePosition) {
+                // Vérifier qu'il y a une pièce du joueur actuel à cette position
+                const [file, rank] = [position.charCodeAt(0) - 65, parseInt(position[1]) - 1];
+                const piece = gameState.board[rank]?.[file];
+                
+                if (piece && isPieceOwnedByCurrentPlayer(piece, gameState.currentPlayer)) {
+                  // Sélectionner cette pièce et afficher ses mouvements possibles
+                  setSelectedPiecePosition(position);
+                  
+                  // Récupérer les mouvements possibles pour cette pièce spécifique
+                  const allMoves = getPossibleMoves(gameState, 'move_piece');
+                  const pieceMoves = allMoves.filter(move => move.from === position);
+                  setPossibleMoves(pieceMoves);
+                }
+                return;
+              }
+              
               if (selectedAction && possibleMoves.length > 0) {
                 // Chercher un mouvement correspondant
                 let move = null;
                 
-                if (selectedAction === 'place_piece' || selectedAction === 'place_king') {
+                if (selectedAction === 'place_king') {
                   // Pour les placements, chercher par position de destination
                   move = possibleMoves.find(m => m.to === position);
                 } else if (selectedAction === 'move_piece' || selectedAction === 'move_king_and_place') {
@@ -281,10 +312,26 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
                 
                 if (move) {
                   handleAction(move);
+                  // Réinitialiser la sélection après le mouvement
+                  if (selectedAction === 'move_piece') {
+                    setSelectedPiecePosition(null);
+                  }
                 } else {
-                  // Si aucun mouvement trouvé, afficher les mouvements possibles pour debugging
-                  console.log('Aucun mouvement trouvé pour la position:', position);
-                  console.log('Mouvements possibles:', possibleMoves);
+                  // Si aucun mouvement trouvé et qu'on est en mode move_piece avec une pièce sélectionnée,
+                  // permettre de sélectionner une autre pièce
+                  if (selectedAction === 'move_piece' && selectedPiecePosition) {
+                    const [file, rank] = [position.charCodeAt(0) - 65, parseInt(position[1]) - 1];
+                    const piece = gameState.board[rank]?.[file];
+                    
+                    if (piece && isPieceOwnedByCurrentPlayer(piece, gameState.currentPlayer)) {
+                      // Sélectionner cette nouvelle pièce
+                      setSelectedPiecePosition(position);
+                      
+                      const allMoves = getPossibleMoves(gameState, 'move_piece');
+                      const pieceMoves = allMoves.filter(move => move.from === position);
+                      setPossibleMoves(pieceMoves);
+                    }
+                  }
                 }
               }
             }}
@@ -319,23 +366,34 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
           {possibleMoves.length > 0 && (
             <div className={styles.movesSection}>
               <h3>
-                {selectedAction === 'move_king_and_place' && !selectedPieceForKingMove 
-                  ? 'Choisir une pièce à placer' 
-                  : selectedAction === 'move_king_and_place' && selectedPieceForKingMove
-                    ? `Déplacer le roi (pièce: ${selectedPieceForKingMove})`
-                    : selectedAction === 'place_piece' && !selectedPieceForPlacement
-                      ? 'Choisir une pièce à placer'
-                      : selectedAction === 'place_piece' && selectedPieceForPlacement
-                        ? `Choisir la position pour ${selectedPieceForPlacement}`
-                        : selectedAction === 'exchange_pieces'
-                          ? 'Échanges possibles'
-                          : 'Coups possibles'
+                {selectedAction === 'move_piece' && !selectedPiecePosition
+                  ? 'Cliquer sur une pièce à déplacer'
+                  : selectedAction === 'move_piece' && selectedPiecePosition
+                    ? `Mouvements possibles pour la pièce en ${selectedPiecePosition}`
+                    : selectedAction === 'move_king_and_place' && !selectedPieceForKingMove 
+                      ? 'Choisir une pièce à placer' 
+                      : selectedAction === 'move_king_and_place' && selectedPieceForKingMove
+                        ? `Déplacer le roi (pièce: ${selectedPieceForKingMove})`
+                        : selectedAction === 'place_piece' && !selectedPieceForPlacement
+                          ? 'Choisir une pièce à placer'
+                          : selectedAction === 'place_piece' && selectedPieceForPlacement
+                            ? `Choisir la position pour ${selectedPieceForPlacement}`
+                            : selectedAction === 'exchange_pieces'
+                              ? 'Échanges possibles'
+                              : 'Coups possibles'
                 }
               </h3>
               <MovesList 
                 moves={possibleMoves}
                 onMoveSelect={handleAction}
               />
+            </div>
+          )}
+          
+          {selectedAction === 'move_piece' && !selectedPiecePosition && possibleMoves.length === 0 && (
+            <div className={styles.movesSection}>
+              <h3>Cliquer sur une pièce à déplacer</h3>
+              <p>Sélectionnez une de vos pièces sur l'échiquier pour voir ses mouvements possibles.</p>
             </div>
           )}
         </div>
@@ -544,5 +602,17 @@ function formatMoveDescription(move: GameAction): string {
       return `${move.type} ${move.from || ''} → ${move.to || ''}`;
   }
 }
+
+// Fonction utilitaire pour vérifier si une pièce appartient au joueur actuel
+const isPieceOwnedByCurrentPlayer = (piece: string, currentPlayer: 'white' | 'black'): boolean => {
+  const isWhitePiece = piece.includes('White');
+  const isBlackPiece = piece.includes('Black');
+  
+  if (currentPlayer === 'white') {
+    return isWhitePiece;
+  } else {
+    return isBlackPiece;
+  }
+};
 
 export default SecretKingBootGame;
