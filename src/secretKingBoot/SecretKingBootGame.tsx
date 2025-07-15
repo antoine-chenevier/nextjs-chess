@@ -243,8 +243,6 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
   }, []);
   
   const availableActions = getAvailableActions(gameState);
-  const currentReserve = gameState.currentPlayer === 'white' ? 
-    gameState.whiteReserve : gameState.blackReserve;
   
   return (
     <div className={styles.secretKingBootGame}>
@@ -296,8 +294,17 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
         {/* Panneau de contrôle */}
         <div className={styles.controlPanel}>
           <div className={styles.reserveDisplay}>
-            <h3>Réserve {gameState.currentPlayer === 'white' ? 'Blanche' : 'Noire'}</h3>
-            <ReserveDisplay reserve={currentReserve} />
+            <h3>Réserves</h3>
+            <div className={styles.bothReserves}>
+              <div className={`${styles.reserveSection} ${gameState.currentPlayer === 'white' ? styles.activePlayer : ''}`}>
+                <h4>♔ Blanc</h4>
+                <ReserveDisplay reserve={gameState.whiteReserve} />
+              </div>
+              <div className={`${styles.reserveSection} ${gameState.currentPlayer === 'black' ? styles.activePlayer : ''}`}>
+                <h4>♚ Noir</h4>
+                <ReserveDisplay reserve={gameState.blackReserve} />
+              </div>
+            </div>
           </div>
           
           <div className={styles.actionsSection}>
