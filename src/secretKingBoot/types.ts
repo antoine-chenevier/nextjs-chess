@@ -34,9 +34,9 @@ export type ActionType =
   | 'generate_pawn'        // Générer un pion en réserve
   | 'move_piece'           // Déplacer une pièce sur l'échiquier
   | 'move_king_and_place'  // Déplacer le roi ET placer une pièce
-  | 'place_piece'          // Placer une pièce de la réserve
   | 'exchange_pieces'      // Échanger des pions contre une autre pièce
-  | 'promote_pawn';        // Promotion classique d'un pion
+  | 'promote_pawn'         // Promotion classique d'un pion
+  | 'place_piece';         // Placer une pièce de la réserve sur l'échiquier
 
 export interface GameAction {
   type: ActionType;

@@ -435,7 +435,6 @@ const ActionSelector: React.FC<ActionSelectorProps> = ({
     generate_pawn: 'Générer un pion',
     move_piece: 'Déplacer une pièce',
     move_king_and_place: 'Déplacer roi + placer pièce',
-    place_piece: 'Placer une pièce',
     exchange_pieces: 'Échanger des pions',
     promote_pawn: 'Promouvoir un pion'
   };

@@ -38,11 +38,6 @@ export function getAvailableActions(gameState: SecretKingBootGameState): ActionT
       }
     }
     
-    // Placement de pièces de la réserve
-    if (hasReservePieces(gameState)) {
-      actions.push('place_piece');
-    }
-    
     // Échange de pions contre des pièces
     if (canExchangePieces(gameState)) {
       actions.push('exchange_pieces');
@@ -86,9 +81,6 @@ export function getPossibleMoves(
     case 'move_king_and_place':
       return getKingMoveAndPlaceMoves(gameState);
     
-    case 'place_piece':
-      return getPiecePlacementMoves(gameState);
-    
     case 'exchange_pieces':
       return getExchangeMoves(gameState);
     
@@ -103,7 +95,6 @@ export function getPossibleMoves(
 export function getActionCost(action: GameAction): number {
   switch (action.type) {
     case 'generate_pawn':
-    case 'place_piece':
     case 'move_piece':
     case 'exchange_pieces':
     case 'promote_pawn':
@@ -429,55 +420,6 @@ function generateMovesForPiece(
  */
 function isValidSquare(x: number, y: number): boolean {
   return x >= 0 && x < 8 && y >= 0 && y < 8;
-}
-
-function getPiecePlacementMoves(gameState: SecretKingBootGameState): GameAction[] {
-  const moves: GameAction[] = [];
-  const player = gameState.currentPlayer;
-  const turn = gameState.turn;
-  const reserve = player === 'white' ? gameState.whiteReserve : gameState.blackReserve;
-  
-  // Types de pièces disponibles en réserve
-  const availablePieces: { type: string; count: number }[] = [
-    { type: 'Pawn', count: reserve.pawns },
-    { type: 'Knight', count: reserve.knights },
-    { type: 'Bishop', count: reserve.bishops },
-    { type: 'Rook', count: reserve.rooks },
-    { type: 'Queen', count: reserve.queens }
-  ];
-  
-  // Pour chaque type de pièce disponible en réserve
-  for (const pieceInfo of availablePieces) {
-    if (pieceInfo.count > 0) {
-      // Parcourir toutes les cases de l'échiquier
-      for (let rank = 0; rank < 8; rank++) {
-        for (let file = 0; file < 8; file++) {
-          const position = String.fromCharCode(65 + file) + (rank + 1);
-          
-          // Vérifier que la case est libre
-          if (gameState.board[rank][file] === null) {
-            // Vérifier les règles spéciales pour les pions
-            if (pieceInfo.type === 'Pawn') {
-              const allowedRanks = player === 'white' ? [1, 2, 3, 4] : [5, 6, 7, 8];
-              if (!allowedRanks.includes(rank + 1)) {
-                continue; // Passer cette case si elle n'est pas dans la zone autorisée
-              }
-            }
-            
-            moves.push({
-              type: 'place_piece',
-              player,
-              turn,
-              to: position,
-              piece: pieceInfo.type
-            });
-          }
-        }
-      }
-    }
-  }
-  
-  return moves;
 }
 
 function getExchangeMoves(gameState: SecretKingBootGameState): GameAction[] {
