@@ -5,7 +5,7 @@ import {
   RESERVE_LIMITS,
   EXCHANGE_COSTS
 } from './types';
-import { getGameStatus, updateGameStateWithChessLogic } from './gameLogic';
+import { getGameStatus, updateGameStateWithChessLogic, isChessMoveLegal } from './gameLogic';
 
 /**
  * Applique une action validée sur l'état du jeu
@@ -144,6 +144,13 @@ function applyMovePiece(
   gameState: SecretKingBootGameState, 
   action: GameAction
 ): SecretKingBootGameState {
+  
+  // Vérifier la légalité du mouvement selon les règles d'échecs
+  if (gameState.gamePhase === 'playing' && !isChessMoveLegal(gameState, action.from!, action.to!)) {
+    // Mouvement illégal, retourner l'état inchangé
+    console.warn(`Mouvement illégal tenté: ${action.from} -> ${action.to}`);
+    return gameState;
+  }
   
   const [fromFile, fromRank] = parsePosition(action.from!);
   const [toFile, toRank] = parsePosition(action.to!);

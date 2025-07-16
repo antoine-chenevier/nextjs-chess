@@ -464,6 +464,28 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
               <p>Sélectionnez une de vos pièces sur l'échiquier pour voir ses mouvements possibles.</p>
             </div>
           )}
+          
+          {/* Aide contextuelle pour les situations d'échec */}
+          {gameState.gameStatus?.status === 'check' && (
+            <div className={styles.checkHelp}>
+              <h3>🚨 Votre roi est en échec !</h3>
+              <p>Vous devez impérativement sortir votre roi de cette situation :</p>
+              <ul>
+                <li>🏃 Déplacer le roi vers une case sûre</li>
+                <li>🛡️ Bloquer l'attaque avec une autre pièce</li>
+                <li>⚔️ Capturer la pièce qui attaque le roi</li>
+              </ul>
+              <p><em>Seuls les mouvements qui sortent le roi d'échec sont autorisés.</em></p>
+            </div>
+          )}
+          
+          {gameState.gameStatus?.status === 'checkmate' && (
+            <div className={styles.checkmateInfo}>
+              <h3>♛ Échec et mat !</h3>
+              <p>La partie est terminée. Le roi ne peut plus échapper à l'échec.</p>
+              <p><strong>Vainqueur : {gameState.gameStatus.winner === 'white' ? '⚪ Blanc' : '⚫ Noir'}</strong></p>
+            </div>
+          )}
         </div>
       </div>
       

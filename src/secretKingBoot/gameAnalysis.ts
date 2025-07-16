@@ -1,4 +1,5 @@
 import { SecretKingBootGameState, GameAction, ActionType } from './types';
+import { isChessMoveLegal } from './gameLogic';
 
 /**
  * Actions disponibles pour le joueur selon l'état actuel du jeu
@@ -223,17 +224,21 @@ function getPieceMovementMoves(gameState: SecretKingBootGameState): GameAction[]
           player
         );
         
-        // Convertir en GameAction
+        // Convertir en GameAction et filtrer les mouvements légaux
         for (const move of pieceMoves) {
           const toPosition = String.fromCharCode(65 + move.x) + (move.y + 1);
-          moves.push({
-            type: 'move_piece',
-            player,
-            turn,
-            from: fromPosition,
-            to: toPosition,
-            piece: piece
-          });
+          
+          // Vérifier si le mouvement est légal selon les règles d'échecs
+          if (isChessMoveLegal(gameState, fromPosition, toPosition)) {
+            moves.push({
+              type: 'move_piece',
+              player,
+              turn,
+              from: fromPosition,
+              to: toPosition,
+              piece: piece
+            });
+          }
         }
       }
     }
@@ -578,6 +583,11 @@ function getKingMoveAndPlaceMoves(gameState: SecretKingBootGameState): GameActio
   for (const kingMove of kingMoves) {
     const fromPosition = String.fromCharCode(65 + kingPosition.x) + (kingPosition.y + 1);
     const toPosition = String.fromCharCode(65 + kingMove.x) + (kingMove.y + 1);
+    
+    // Vérifier si le mouvement du roi est légal selon les règles d'échecs
+    if (!isChessMoveLegal(gameState, fromPosition, toPosition)) {
+      continue; // Passer ce mouvement s'il n'est pas légal
+    }
     
     // Pour chaque type de pièce disponible en réserve
     for (const pieceInfo of availablePieces) {
