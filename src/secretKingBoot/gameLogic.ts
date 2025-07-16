@@ -259,29 +259,33 @@ export function updateGameStateWithChessLogic(gameState: SecretKingBootGameState
     winner?: 'white' | 'black' | 'draw';
     reason?: string;
   } = {
-    status: 'playing',
-    player: gameState.currentPlayer
+    status: 'playing'
+    // Ne définir player que si il y a échec/mat/pat
   };
   
   switch (chessGameState) {
     case ChessGameState.CHECK:
       gameStatus.status = 'check';
+      gameStatus.player = gameState.currentPlayer; // Le joueur actuel est en échec
       break;
       
     case ChessGameState.CHECKMATE:
       gameStatus.status = 'checkmate';
+      gameStatus.player = gameState.currentPlayer; // Le joueur actuel est en mat
       gameStatus.winner = gameState.currentPlayer === 'white' ? 'black' : 'white';
       gameStatus.reason = 'Échec et mat';
       break;
       
     case ChessGameState.STALEMATE:
       gameStatus.status = 'stalemate';
+      gameStatus.player = gameState.currentPlayer; // Le joueur actuel est en pat
       gameStatus.winner = 'draw';
       gameStatus.reason = 'Pat (stalemate)';
       break;
       
     default:
       gameStatus.status = 'playing';
+      // Pas de player défini car pas d'état spécial
       break;
   }
   
@@ -590,6 +594,11 @@ function validateGeneratePawn(
   action: GameAction
 ): { valid: boolean; reason?: string } {
   
+  // Vérifier que le roi n'est pas en échec
+  if (isKingInCheck(gameState, action.player)) {
+    return { valid: false, reason: "Impossible de générer un pion quand le roi est en échec" };
+  }
+  
   const reserve = action.player === 'white' ? 
     gameState.whiteReserve : gameState.blackReserve;
   
@@ -712,6 +721,11 @@ function validateExchangePieces(
   gameState: SecretKingBootGameState, 
   action: GameAction
 ): { valid: boolean; reason?: string } {
+  
+  // Vérifier que le roi n'est pas en échec
+  if (isKingInCheck(gameState, action.player)) {
+    return { valid: false, reason: "Impossible d'échanger des pions quand le roi est en échec" };
+  }
   
   if (!action.exchangeTo || !action.cost) {
     return { valid: false, reason: "Type de pièce et coût requis" };

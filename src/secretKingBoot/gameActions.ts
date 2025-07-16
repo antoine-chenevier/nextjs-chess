@@ -119,9 +119,20 @@ function updateGameStatus(gameState: SecretKingBootGameState): SecretKingBootGam
     // Pour certaines actions, changer de joueur
     const lastAction = updatedState.moveHistory[updatedState.moveHistory.length - 1];
     if (lastAction && ['move_piece', 'move_king_and_place', 'place_piece'].includes(lastAction.type)) {
-      updatedState.currentPlayer = updatedState.currentPlayer === 'white' ? 'black' : 'white';
-      if (updatedState.currentPlayer === 'white') {
-        updatedState.turn += 1;
+      
+      // RÈGLE CRITIQUE: Si le joueur actuel est encore en échec, il doit continuer à jouer
+      const isCurrentPlayerInCheck = updatedState.gameStatus?.status === 'check' && 
+                                     updatedState.gameStatus?.player === updatedState.currentPlayer;
+      
+      if (!isCurrentPlayerInCheck) {
+        // Le joueur peut finir son tour (soit il n'est pas en échec, soit l'échec a été résolu)
+        updatedState.currentPlayer = updatedState.currentPlayer === 'white' ? 'black' : 'white';
+        if (updatedState.currentPlayer === 'white') {
+          updatedState.turn += 1;
+        }
+      } else {
+        // Le joueur est encore en échec, il doit continuer à jouer
+        console.log(`🚨 ${updatedState.currentPlayer} est encore en échec, doit continuer à jouer`);
       }
     }
   }
@@ -243,12 +254,8 @@ function applyMovePiece(
     gameState.board[toRank][toFile] = promotionPiece;
   }
   
-  // Passer au joueur suivant
-  gameState.currentPlayer = gameState.currentPlayer === 'white' ? 'black' : 'white';
-  
-  if (gameState.currentPlayer === 'white') {
-    gameState.turn++;
-  }
+  // Ne pas changer de joueur ici - sera géré par updateGameStatus selon l'état d'échec
+  // Le changement de tour se fait seulement si le joueur n'est plus en échec
   
   // Mettre à jour le statut du jeu
   return updateGameStatus(gameState);
@@ -302,12 +309,7 @@ function applyPlacePiece(
   
   removePieceFromReserve(reserve, action.piece!);
   
-  // Passer au joueur suivant
-  gameState.currentPlayer = gameState.currentPlayer === 'white' ? 'black' : 'white';
-  
-  if (gameState.currentPlayer === 'white') {
-    gameState.turn++;
-  }
+  // Ne pas changer de joueur ici - sera géré par updateGameStatus selon l'état d'échec
   
   // Mettre à jour le statut du jeu
   return updateGameStatus(gameState);
@@ -330,12 +332,7 @@ function applyExchangePieces(
   // Ajouter la nouvelle pièce
   addPieceToReserve(reserve, action.exchangeTo!);
   
-  // Passer au joueur suivant
-  gameState.currentPlayer = gameState.currentPlayer === 'white' ? 'black' : 'white';
-  
-  if (gameState.currentPlayer === 'white') {
-    gameState.turn++;
-  }
+  // Ne pas changer de joueur ici - sera géré par updateGameStatus selon l'état d'échec
   
   // Mettre à jour le statut du jeu
   return updateGameStatus(gameState);
@@ -354,12 +351,10 @@ function applyPromotePawn(
   // Remplacer le pion par la pièce promue
   gameState.board[rank][file] = formatPieceForBoard(action.piece!, action.player);
   
-  // Passer au joueur suivant
-  gameState.currentPlayer = gameState.currentPlayer === 'white' ? 'black' : 'white';
+  // Ne pas changer de joueur ici - sera géré par updateGameStatus selon l'état d'échec
   
-  if (gameState.currentPlayer === 'white') {
-    gameState.turn++;
-  }
+  // Mettre à jour le statut du jeu
+  return updateGameStatus(gameState);
   
   // Mettre à jour le statut du jeu
   return updateGameStatus(gameState);
