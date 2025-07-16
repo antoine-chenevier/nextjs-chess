@@ -229,6 +229,49 @@ export function isChessMoveLegal(
 }
 
 /**
+ * Crée un état de test avec une situation d'échec
+ */
+export function createTestCheckState(): SecretKingBootGameState {
+  const gameState = createInitialGameState();
+  
+  // Placer les rois
+  gameState.whiteKingPosition = 'E1';
+  gameState.blackKingPosition = 'E8';
+  gameState.gamePhase = 'playing';
+  gameState.currentPlayer = 'white';
+  
+  // Placer les rois sur l'échiquier
+  gameState.board[0][4] = 'WhiteKing'; // E1
+  gameState.board[7][4] = 'BlackKing'; // E8
+  
+  // Placer une tour blanche en E7 pour mettre le roi noir en échec
+  gameState.board[6][4] = 'WhiteRook'; // E7
+  
+  return updateGameStateWithChessLogic(gameState);
+}
+
+/**
+ * Crée un état de test avec une situation de mat
+ */
+export function createTestCheckmateState(): SecretKingBootGameState {
+  const gameState = createInitialGameState();
+  
+  // Placer les rois
+  gameState.whiteKingPosition = 'E1';
+  gameState.blackKingPosition = 'E8';
+  gameState.gamePhase = 'playing';
+  gameState.currentPlayer = 'black'; // C'est au tour des noirs
+  
+  // Situation de mat du couloir
+  gameState.board[0][4] = 'WhiteKing';  // E1
+  gameState.board[7][4] = 'BlackKing';  // E8
+  gameState.board[6][0] = 'WhiteRook';  // A7
+  gameState.board[5][1] = 'WhiteRook';  // B6
+  
+  return updateGameStateWithChessLogic(gameState);
+}
+
+/**
  * Vérifie si une action est valide dans l'état actuel
  */
 export function isValidAction(

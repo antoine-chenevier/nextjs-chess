@@ -8,7 +8,9 @@ import {
 } from './types';
 import { 
   createInitialGameState, 
-  isValidAction 
+  isValidAction,
+  createTestCheckState,
+  createTestCheckmateState
 } from './gameLogic';
 import { 
   applyAction 
@@ -83,8 +85,27 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
     const analysis = analyzeGameState(newState);
     setGameAnalysis(analysis);
     
-    // Vérifier si la partie est terminée (échec et mat)
-    // TODO: Implémenter la détection de fin de partie
+    // Vérifier si la partie est terminée et afficher un message
+    if (newState.gameStatus) {
+      switch (newState.gameStatus.status) {
+        case 'check':
+          console.log(`${newState.gameStatus.player === 'white' ? 'Blanc' : 'Noir'} est en échec !`);
+          break;
+        case 'checkmate':
+          const winner = newState.gameStatus.winner === 'white' ? 'Blanc' : 'Noir';
+          alert(`Échec et mat ! ${winner} gagne la partie !`);
+          if (onGameEnd) {
+            onGameEnd(newState.gameStatus.winner as 'white' | 'black' | 'draw');
+          }
+          break;
+        case 'stalemate':
+          alert('Pat ! La partie se termine par un match nul.');
+          if (onGameEnd) {
+            onGameEnd('draw');
+          }
+          break;
+      }
+    }
     
     // Reset des sélections
     setSelectedAction(null);
@@ -97,6 +118,12 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
   
   // Sélectionner un type d'action
   const handleActionSelection = useCallback((actionType: ActionType) => {
+    // Empêcher les actions si la partie est terminée
+    if (gameState.gamePhase === 'ended') {
+      alert('La partie est terminée. Commencez une nouvelle partie.');
+      return;
+    }
+    
     // Pour "generate_pawn", exécuter directement l'action
     if (actionType === 'generate_pawn') {
       const generatePawnAction: GameAction = {
@@ -289,6 +316,20 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
         <button onClick={resetGame} className={styles.resetButton}>
           Nouvelle partie
         </button>
+        <div className={styles.testButtons}>
+          <button 
+            onClick={() => setGameState(createTestCheckState())} 
+            className={styles.testButton}
+          >
+            Test Échec
+          </button>
+          <button 
+            onClick={() => setGameState(createTestCheckmateState())} 
+            className={styles.testButton}
+          >
+            Test Mat
+          </button>
+        </div>
       </div>
       
       <div className={styles.gameContent}>
@@ -299,6 +340,12 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
             selectedAction={selectedAction}
             possibleMoves={possibleMoves}
             onSquareClick={(position) => {
+              // Empêcher les actions si la partie est terminée
+              if (gameState.gamePhase === 'ended') {
+                alert('La partie est terminée. Commencez une nouvelle partie.');
+                return;
+              }
+              
               // Gérer les clics sur l'échiquier
               
               // Si on est en mode "move_piece" et qu'aucune pièce n'est sélectionnée
@@ -456,10 +503,15 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
           // Vérifier si cette case est une destination possible
           const isPossibleMove = possibleMoves.some(move => move.to === position);
           
+          // Vérifier si le roi sur cette case est en échec
+          const isKingInCheck = piece && 
+            ((piece === 'WhiteKing' && gameState.gameStatus?.status === 'check' && gameState.gameStatus?.player === 'white') ||
+             (piece === 'BlackKing' && gameState.gameStatus?.status === 'check' && gameState.gameStatus?.player === 'black'));
+          
           return (
             <div
               key={position}
-              className={`${styles.square} ${isLight ? styles.light : styles.dark} ${isPossibleMove ? styles.possible : ''}`}
+              className={`${styles.square} ${isLight ? styles.light : styles.dark} ${isPossibleMove ? styles.possible : ''} ${isKingInCheck ? styles.inCheck : ''}`}
               onClick={() => onSquareClick(position)}
             >
               {piece && (

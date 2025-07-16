@@ -20,33 +20,45 @@ export function applyAction(
   // Ajouter l'action à l'historique
   newState.moveHistory.push(action);
   
+  let intermediateState: SecretKingBootGameState;
+  
   switch (action.type) {
     case 'place_king':
-      return applyPlaceKing(newState, action);
+      intermediateState = applyPlaceKing(newState, action);
+      break;
     
     case 'generate_pawn':
-      return applyGeneratePawn(newState, action);
+      intermediateState = applyGeneratePawn(newState, action);
+      break;
     
     case 'move_piece':
-      return applyMovePiece(newState, action);
+      intermediateState = applyMovePiece(newState, action);
+      break;
     
     case 'move_king_and_place':
-      return applyMoveKingAndPlace(newState, action);
+      intermediateState = applyMoveKingAndPlace(newState, action);
+      break;
     
     case 'place_piece':
-      return applyPlacePiece(newState, action);
+      intermediateState = applyPlacePiece(newState, action);
+      break;
     
     case 'exchange_pieces':
-      return applyExchangePieces(newState, action);
+      intermediateState = applyExchangePieces(newState, action);
+      break;
     
     case 'promote_pawn':
-      return applyPromotePawn(newState, action);
+      intermediateState = applyPromotePawn(newState, action);
+      break;
     
     default:
-      // Après toute action qui modifie l'état du jeu, vérifier le statut
-      const finalState = updateGameStatus(newState);
-      return finalState;
+      intermediateState = newState;
+      break;
   }
+  
+  // Toujours mettre à jour le statut du jeu après une action
+  const finalState = updateGameStatus(intermediateState);
+  return finalState;
 }
 
 /**
@@ -56,25 +68,20 @@ function updateGameStatus(gameState: SecretKingBootGameState): SecretKingBootGam
   // Utiliser la logique d'échecs classique pour mettre à jour l'état
   const updatedState = updateGameStateWithChessLogic(gameState);
   
-  // Changer de joueur si la partie n'est pas terminée
-  if (updatedState.gamePhase !== 'ended') {
-    updatedState.currentPlayer = updatedState.currentPlayer === 'white' ? 'black' : 'white';
-    updatedState.turn += 1;
-  }
-  
-  return updatedState;
-  // Seulement vérifier en phase de jeu
-  if (gameState.gamePhase === 'playing') {
-    const status = getGameStatus(gameState);
-    gameState.gameStatus = status;
-    
-    // Si la partie est terminée, changer la phase
-    if (status.status === 'checkmate' || status.status === 'stalemate') {
-      gameState.gamePhase = 'ended';
+  // Ne changer de joueur que si ce n'est pas une action de placement de roi (phase setup)
+  // et si la partie n'est pas terminée
+  if (updatedState.gamePhase === 'playing' && updatedState.gameStatus?.status !== 'checkmate' && updatedState.gameStatus?.status !== 'stalemate') {
+    // Pour certaines actions, changer de joueur
+    const lastAction = updatedState.moveHistory[updatedState.moveHistory.length - 1];
+    if (lastAction && ['move_piece', 'move_king_and_place', 'place_piece'].includes(lastAction.type)) {
+      updatedState.currentPlayer = updatedState.currentPlayer === 'white' ? 'black' : 'white';
+      if (updatedState.currentPlayer === 'white') {
+        updatedState.turn += 1;
+      }
     }
   }
   
-  return gameState;
+  return updatedState;
 }
 
 /**
