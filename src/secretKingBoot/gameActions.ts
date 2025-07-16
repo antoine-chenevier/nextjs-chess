@@ -5,7 +5,7 @@ import {
   RESERVE_LIMITS,
   EXCHANGE_COSTS
 } from './types';
-import { getGameStatus } from './gameLogic';
+import { getGameStatus, updateGameStateWithChessLogic } from './gameLogic';
 
 /**
  * Applique une action validée sur l'état du jeu
@@ -53,6 +53,16 @@ export function applyAction(
  * Met à jour le statut du jeu (échec, échec et mat, pat)
  */
 function updateGameStatus(gameState: SecretKingBootGameState): SecretKingBootGameState {
+  // Utiliser la logique d'échecs classique pour mettre à jour l'état
+  const updatedState = updateGameStateWithChessLogic(gameState);
+  
+  // Changer de joueur si la partie n'est pas terminée
+  if (updatedState.gamePhase !== 'ended') {
+    updatedState.currentPlayer = updatedState.currentPlayer === 'white' ? 'black' : 'white';
+    updatedState.turn += 1;
+  }
+  
+  return updatedState;
   // Seulement vérifier en phase de jeu
   if (gameState.gamePhase === 'playing') {
     const status = getGameStatus(gameState);

@@ -1,4 +1,5 @@
 // Types et interfaces pour la variante "La botte secrète du roi"
+import { Board, Piece, GameState as ChessGameState, CompleteGameState } from '../logic/index';
 
 export interface Reserve {
   pawns: number;
@@ -16,9 +17,10 @@ export interface SecretKingBootGameState {
   
   // Statut de la partie (échec, échec et mat, etc.)
   gameStatus?: {
-    status: 'playing' | 'check' | 'checkmate' | 'stalemate';
+    status: 'playing' | 'check' | 'checkmate' | 'stalemate' | 'draw';
     player?: 'white' | 'black';
     winner?: 'white' | 'black' | 'draw';
+    reason?: string; // Raison de la fin de partie
   };
   
   // Réserves des joueurs
@@ -34,6 +36,11 @@ export interface SecretKingBootGameState {
   
   // État de l'échiquier (hérité du jeu classique mais adapté)
   board: (string | null)[][]; // 8x8, null = case vide
+  
+  // Intégration avec la logique d'échecs classique
+  chessBoard?: Board; // Représentation compatible avec la logique d'échecs
+  chessGameState?: ChessGameState;
+  completeGameState?: CompleteGameState;
 }
 
 export type ActionType = 

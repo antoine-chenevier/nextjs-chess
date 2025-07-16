@@ -611,6 +611,324 @@ export const pieceNameByName = (str: string): PieceName => {
   }
 }
 
+/**
+ * Trouve le roi d'un groupe donné sur le plateau
+ */
+export function findKing(board: Board, group: number): Piece | null {
+  return board.pieces.find(piece => 
+    piece && piece.type === PieceType.King && piece.group === group
+  ) || null;
+}
+
+/**
+ * Vérifie si le roi d'un groupe donné est en échec
+ */
+export function isInCheck(board: Board, group: number): boolean {
+  const king = findKing(board, group);
+  if (!king) return false;
+  
+  const threatened = threatZone(board);
+  const kingIndex = king.x + king.y * 8;
+  
+  // Le roi est en échec s'il est dans une zone de menace ennemie
+  return (threatened[kingIndex] % first20Primes[group]) !== 0;
+}
+
+/**
+ * Vérifie si un mouvement est légal (ne met pas son propre roi en échec)
+ */
+export function isLegalMove(board: Board, action: Action): boolean {
+  const testBoard = makeMove(board, action);
+  return !isInCheck(testBoard, action.from.group);
+}
+
+/**
+ * Obtient tous les mouvements légaux pour une pièce spécifique
+ */
+export function getLegalMovesForPiece(board: Board, piece: Piece): Action[] {
+  const possibleMoves = move({ x: piece.x, y: piece.y }, board);
+  const legalMoves: Action[] = [];
+  
+  possibleMoves.forEach(dest => {
+    const action: Action = {
+      from: piece,
+      dest: { ...dest, group: piece.group, type: piece.type, name: piece.name }
+    };
+    
+    if (isLegalMove(board, action)) {
+      legalMoves.push(action);
+    }
+  });
+  
+  return legalMoves;
+}
+
+/**
+ * Obtient tous les mouvements légaux pour un groupe donné
+ */
+export function getAllLegalMoves(board: Board, group: number): Action[] {
+  const legalMoves: Action[] = [];
+  
+  board.pieces.forEach((piece) => {
+    if (!piece || piece.group !== group) return;
+    
+    const pieceLegalMoves = getLegalMovesForPiece(board, piece);
+    legalMoves.push(...pieceLegalMoves);
+  });
+  
+  return legalMoves;
+}
+
+/**
+ * Vérifie si un groupe est en mat
+ */
+export function isCheckmate(board: Board, group: number): boolean {
+  // Un groupe est en mat s'il est en échec ET n'a aucun mouvement légal
+  return isInCheck(board, group) && getAllLegalMoves(board, group).length === 0;
+}
+
+/**
+ * Vérifie si un groupe est en pat (stalemate)
+ */
+export function isStalemate(board: Board, group: number): boolean {
+  // Un groupe est en pat s'il n'est PAS en échec mais n'a aucun mouvement légal
+  return !isInCheck(board, group) && getAllLegalMoves(board, group).length === 0;
+}
+
+/**
+ * Détermine l'état du jeu pour un groupe donné
+ */
+export enum GameState {
+  NORMAL = 'normal',
+  CHECK = 'check',
+  CHECKMATE = 'checkmate',
+  STALEMATE = 'stalemate'
+}
+
+export function getGameState(board: Board, group: number): GameState {
+  const inCheck = isInCheck(board, group);
+  const hasLegalMoves = getAllLegalMoves(board, group).length > 0;
+  
+  if (inCheck && !hasLegalMoves) {
+    return GameState.CHECKMATE;
+  } else if (!inCheck && !hasLegalMoves) {
+    return GameState.STALEMATE;
+  } else if (inCheck) {
+    return GameState.CHECK;
+  } else {
+    return GameState.NORMAL;
+  }
+}
+
+/**
+ * Vérifie si un mouvement donné met le roi adverse en échec
+ */
+export function givesCheck(board: Board, action: Action): boolean {
+  const newBoard = makeMove(board, action);
+  const opponentGroup = action.from.group === 2 ? 3 : 2; // Alterne entre groupe 2 et 3
+  return isInCheck(newBoard, opponentGroup);
+}
+
+/**
+ * Vérifie si un mouvement donné met le roi adverse en mat
+ */
+export function givesCheckmate(board: Board, action: Action): boolean {
+  const newBoard = makeMove(board, action);
+  const opponentGroup = action.from.group === 2 ? 3 : 2;
+  return isCheckmate(newBoard, opponentGroup);
+}
+
+/**
+ * Vérifie s'il y a suffisamment de matériel pour faire mat
+ */
+export function hasSufficientMaterial(board: Board): boolean {
+  const pieces = board.pieces.filter(p => p !== null);
+  
+  // Compter les pièces par type et couleur
+  const whitePieces = pieces.filter(p => p.group === 2);
+  const blackPieces = pieces.filter(p => p.group === 3);
+  
+  const hasQueen = (pieces: Piece[]) => pieces.some(p => p.type === PieceType.Queen);
+  const hasRook = (pieces: Piece[]) => pieces.some(p => p.type === PieceType.Rook);
+  const hasPawn = (pieces: Piece[]) => pieces.some(p => p.type === PieceType.WhitePawn || p.type === PieceType.BlackPawn);
+  const bishopCount = (pieces: Piece[]) => pieces.filter(p => p.type === PieceType.Bishop).length;
+  const knightCount = (pieces: Piece[]) => pieces.filter(p => p.type === PieceType.Knight).length;
+  
+  // Si l'un des camps a une dame, une tour ou un pion, il y a suffisamment de matériel
+  if (hasQueen(whitePieces) || hasQueen(blackPieces) || 
+      hasRook(whitePieces) || hasRook(blackPieces) ||
+      hasPawn(whitePieces) || hasPawn(blackPieces)) {
+    return true;
+  }
+  
+  // Vérifier les cas spéciaux de matériel insuffisant
+  for (const pieces of [whitePieces, blackPieces]) {
+    const bishops = bishopCount(pieces);
+    const knights = knightCount(pieces);
+    
+    // Roi + 2 cavaliers ou plus peut faire mat
+    if (knights >= 2) return true;
+    
+    // Roi + fou + cavalier peut faire mat
+    if (bishops >= 1 && knights >= 1) return true;
+    
+    // Roi + 2 fous ou plus peut faire mat
+    if (bishops >= 2) return true;
+  }
+  
+  // Cas insuffisants : Roi seul, Roi + cavalier, Roi + fou
+  return false;
+}
+
+/**
+ * Structure pour représenter l'état complet du jeu incluant l'historique
+ */
+export interface GameInfo {
+  board: Board;
+  currentPlayer: number; // 2 pour blanc, 3 pour noir
+  moveHistory: Action[];
+  fiftyMoveCounter: number;
+  positionHistory: string[]; // Pour détecter la répétition
+}
+
+/**
+ * Vérifie si la partie est nulle par la règle des 50 coups
+ */
+export function isFiftyMoveRule(gameInfo: GameInfo): boolean {
+  return gameInfo.fiftyMoveCounter >= 50;
+}
+
+/**
+ * Vérifie si la partie est nulle par répétition de position (3 fois)
+ */
+export function isThreefoldRepetition(gameInfo: GameInfo): boolean {
+  const currentPosition = gameInfo.positionHistory[gameInfo.positionHistory.length - 1];
+  const occurrences = gameInfo.positionHistory.filter(pos => pos === currentPosition).length;
+  return occurrences >= 3;
+}
+
+/**
+ * État complet du jeu incluant toutes les conditions de fin
+ */
+export enum CompleteGameState {
+  NORMAL = 'normal',
+  CHECK = 'check',
+  CHECKMATE = 'checkmate',
+  STALEMATE = 'stalemate',
+  DRAW_FIFTY_MOVE = 'draw_fifty_move',
+  DRAW_REPETITION = 'draw_repetition',
+  DRAW_INSUFFICIENT_MATERIAL = 'draw_insufficient_material'
+}
+
+/**
+ * Détermine l'état complet du jeu
+ */
+export function getCompleteGameState(gameInfo: GameInfo): CompleteGameState {
+  const { board, currentPlayer } = gameInfo;
+  
+  // Vérifier les conditions de nullité
+  if (isFiftyMoveRule(gameInfo)) {
+    return CompleteGameState.DRAW_FIFTY_MOVE;
+  }
+  
+  if (isThreefoldRepetition(gameInfo)) {
+    return CompleteGameState.DRAW_REPETITION;
+  }
+  
+  if (!hasSufficientMaterial(board)) {
+    return CompleteGameState.DRAW_INSUFFICIENT_MATERIAL;
+  }
+  
+  // Vérifier l'état du joueur actuel
+  const basicState = getGameState(board, currentPlayer);
+  
+  switch (basicState) {
+    case GameState.CHECKMATE:
+      return CompleteGameState.CHECKMATE;
+    case GameState.STALEMATE:
+      return CompleteGameState.STALEMATE;
+    case GameState.CHECK:
+      return CompleteGameState.CHECK;
+    default:
+      return CompleteGameState.NORMAL;
+  }
+}
+
+/**
+ * Crée une représentation string de la position pour détecter les répétitions
+ */
+export function getPositionString(board: Board): string {
+  let position = '';
+  
+  // Ajouter les pièces
+  for (let i = 0; i < 64; i++) {
+    const piece = board.pieces[i];
+    if (piece) {
+      position += `${piece.name}${i}`;
+    }
+  }
+  
+  // Ajouter les droits de roque
+  Object.keys(board.castle).forEach(group => {
+    const castleRights = board.castle[group];
+    position += `${group}:${castleRights.didMoveKing}${castleRights.didMoveShortTower}${castleRights.didMoveLongTower}`;
+  });
+  
+  // Ajouter en passant
+  if (board.passant !== undefined) {
+    position += `ep${board.passant}`;
+  }
+  
+  return position;
+}
+
+/**
+ * Met à jour le GameInfo après un mouvement
+ */
+export function updateGameInfo(gameInfo: GameInfo, action: Action): GameInfo {
+  const newBoard = makeMove(gameInfo.board, action);
+  const { from } = action;
+  
+  // Mettre à jour le compteur de 50 coups
+  let newFiftyMoveCounter = gameInfo.fiftyMoveCounter + 1;
+  
+  // Réinitialiser si c'est un mouvement de pion ou une capture
+  const isPawnMove = from.type === PieceType.WhitePawn || from.type === PieceType.BlackPawn;
+  const isCapture = gameInfo.board.pieces[action.dest.x + action.dest.y * 8] !== null;
+  
+  if (isPawnMove || isCapture) {
+    newFiftyMoveCounter = 0;
+  }
+  
+  // Alterner le joueur
+  const newCurrentPlayer = gameInfo.currentPlayer === 2 ? 3 : 2;
+  
+  // Ajouter la nouvelle position à l'historique
+  const newPositionString = getPositionString(newBoard);
+  const newPositionHistory = [...gameInfo.positionHistory, newPositionString];
+  
+  return {
+    board: newBoard,
+    currentPlayer: newCurrentPlayer,
+    moveHistory: [...gameInfo.moveHistory, action],
+    fiftyMoveCounter: newFiftyMoveCounter,
+    positionHistory: newPositionHistory
+  };
+}
+
+/**
+ * Crée un GameInfo initial
+ */
+export function createInitialGameInfo(board: Board, startingPlayer: number = 2): GameInfo {
+  return {
+    board,
+    currentPlayer: startingPlayer,
+    moveHistory: [],
+    fiftyMoveCounter: 0,
+    positionHistory: [getPositionString(board)]
+  };
+}
+
 // function printState(pieces) {
 //   let result = ''
 //   for(let j = 0; j < 64; j++) {

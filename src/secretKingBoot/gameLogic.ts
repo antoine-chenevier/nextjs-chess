@@ -10,6 +10,21 @@ import {
   MIDDLE_LINE
 } from './types';
 
+import {
+  Board,
+  Piece,
+  PieceType,
+  PieceName,
+  GameState as ChessGameState,
+  CompleteGameState,
+  isInCheck as chessIsInCheck,
+  isCheckmate as chessIsCheckmate,
+  isStalemate as chessIsStalemate,
+  getGameState as chessGetGameState,
+  getAllLegalMoves as chessGetAllLegalMoves,
+  Action as ChessAction
+} from '../logic/index';
+
 /**
  * Crée un état initial pour une partie "La botte secrète du roi"
  */
@@ -43,6 +58,174 @@ export function createInitialGameState(): SecretKingBootGameState {
     // Échiquier vide au départ
     board: Array(8).fill(null).map(() => Array(8).fill(null))
   };
+}
+
+/**
+ * Convertit la notation de position Secret King Boot vers les coordonnées d'échecs
+ */
+function positionToCoordinates(position: string): { x: number; y: number } {
+  const file = position.charCodeAt(0) - 'A'.charCodeAt(0); // A=0, B=1, ..., H=7
+  const rank = parseInt(position[1]) - 1; // 1=0, 2=1, ..., 8=7
+  return { x: file, y: rank };
+}
+
+/**
+ * Convertit les coordonnées d'échecs vers la notation de position Secret King Boot
+ */
+function coordinatesToPosition(x: number, y: number): string {
+  const file = String.fromCharCode('A'.charCodeAt(0) + x);
+  const rank = (y + 1).toString();
+  return file + rank;
+}
+
+/**
+ * Convertit une pièce Secret King Boot vers le format de pièce d'échecs classique
+ */
+function convertToChessPiece(pieceString: string, x: number, y: number): Piece | null {
+  if (!pieceString) return null;
+  
+  const isWhite = pieceString.includes('White');
+  const group = isWhite ? 2 : 3; // Groupe 2 pour blanc, 3 pour noir
+  
+  let type: PieceType;
+  let name: PieceName;
+  
+  if (pieceString.includes('Pawn')) {
+    type = isWhite ? PieceType.WhitePawn : PieceType.BlackPawn;
+    name = isWhite ? PieceName.WhitePawn : PieceName.BlackPawn;
+  } else if (pieceString.includes('Knight')) {
+    type = PieceType.Knight;
+    name = isWhite ? PieceName.WhiteKnight : PieceName.BlackKnight;
+  } else if (pieceString.includes('Bishop')) {
+    type = PieceType.Bishop;
+    name = isWhite ? PieceName.WhiteBishop : PieceName.BlackBishop;
+  } else if (pieceString.includes('Rook')) {
+    type = PieceType.Rook;
+    name = isWhite ? PieceName.WhiteRook : PieceName.BlackRook;
+  } else if (pieceString.includes('Queen')) {
+    type = PieceType.Queen;
+    name = isWhite ? PieceName.WhiteQueen : PieceName.BlackQueen;
+  } else if (pieceString.includes('King')) {
+    type = PieceType.King;
+    name = isWhite ? PieceName.WhiteKing : PieceName.BlackKing;
+  } else {
+    return null;
+  }
+  
+  return { x, y, group, type, name };
+}
+
+/**
+ * Convertit l'état Secret King Boot vers un plateau d'échecs classique
+ */
+export function convertToChessBoard(gameState: SecretKingBootGameState): Board {
+  const pieces: (Piece | null)[] = new Array(64).fill(null);
+  
+  // Convertir le plateau Secret King Boot vers le format d'échecs classique
+  for (let rank = 0; rank < 8; rank++) {
+    for (let file = 0; file < 8; file++) {
+      const piece = gameState.board[rank][file];
+      if (piece) {
+        const chessPiece = convertToChessPiece(piece, file, 7 - rank); // Inverser le rang
+        if (chessPiece) {
+          pieces[file + (7 - rank) * 8] = chessPiece;
+        }
+      }
+    }
+  }
+  
+  return {
+    pieces,
+    castle: {
+      2: { didMoveKing: false, didMoveShortTower: false, didMoveLongTower: false },
+      3: { didMoveKing: false, didMoveShortTower: false, didMoveLongTower: false }
+    }
+  };
+}
+
+/**
+ * Met à jour l'état du jeu avec la logique d'échecs classique
+ */
+export function updateGameStateWithChessLogic(gameState: SecretKingBootGameState): SecretKingBootGameState {
+  // Ne pas vérifier l'échec/mat pendant la phase de setup
+  if (gameState.gamePhase === 'setup') {
+    return gameState;
+  }
+  
+  const chessBoard = convertToChessBoard(gameState);
+  const currentPlayerGroup = gameState.currentPlayer === 'white' ? 2 : 3;
+  
+  // Vérifier l'état du jeu avec la logique d'échecs
+  const chessGameState = chessGetGameState(chessBoard, currentPlayerGroup);
+  
+  let gameStatus: {
+    status: 'playing' | 'check' | 'checkmate' | 'stalemate' | 'draw';
+    player?: 'white' | 'black';
+    winner?: 'white' | 'black' | 'draw';
+    reason?: string;
+  } = {
+    status: 'playing',
+    player: gameState.currentPlayer
+  };
+  
+  switch (chessGameState) {
+    case ChessGameState.CHECK:
+      gameStatus.status = 'check';
+      break;
+      
+    case ChessGameState.CHECKMATE:
+      gameStatus.status = 'checkmate';
+      gameStatus.winner = gameState.currentPlayer === 'white' ? 'black' : 'white';
+      gameStatus.reason = 'Échec et mat';
+      break;
+      
+    case ChessGameState.STALEMATE:
+      gameStatus.status = 'stalemate';
+      gameStatus.winner = 'draw';
+      gameStatus.reason = 'Pat (stalemate)';
+      break;
+      
+    default:
+      gameStatus.status = 'playing';
+      break;
+  }
+  
+  return {
+    ...gameState,
+    chessBoard,
+    chessGameState,
+    gameStatus,
+    gamePhase: gameStatus.winner ? 'ended' : gameState.gamePhase
+  };
+}
+
+/**
+ * Vérifie si un mouvement est légal selon la logique d'échecs classique
+ */
+export function isChessMoveLegal(
+  gameState: SecretKingBootGameState, 
+  from: string, 
+  to: string
+): boolean {
+  const chessBoard = convertToChessBoard(gameState);
+  const fromCoords = positionToCoordinates(from);
+  const toCoords = positionToCoordinates(to);
+  
+  // Adapter les coordonnées pour le système d'échecs (inversion Y)
+  const fromChess = { x: fromCoords.x, y: 7 - fromCoords.y };
+  const toChess = { x: toCoords.x, y: 7 - toCoords.y };
+  
+  const piece = chessBoard.pieces[fromChess.x + fromChess.y * 8];
+  if (!piece) return false;
+  
+  const legalMoves = chessGetAllLegalMoves(chessBoard, piece.group);
+  
+  return legalMoves.some(move => 
+    move.from.x === fromChess.x && 
+    move.from.y === fromChess.y &&
+    move.dest.x === toChess.x && 
+    move.dest.y === toChess.y
+  );
 }
 
 /**
@@ -163,7 +346,15 @@ function validateMovePiece(
     return { valid: false, reason: "Impossible de capturer ses propres pièces" };
   }
   
-  // Validation spécifique selon le type de pièce
+  // Utiliser la logique d'échecs classique pour valider le mouvement
+  if (gameState.gamePhase === 'playing') {
+    const isLegal = isChessMoveLegal(gameState, action.from, action.to);
+    if (!isLegal) {
+      return { valid: false, reason: "Mouvement illégal selon les règles d'échecs" };
+    }
+  }
+  
+  // Validation spécifique selon le type de pièce (pour les cas non couverts par la logique classique)
   return validatePieceMovement(piece, action.from, action.to, gameState.board, action.player);
 }
 
