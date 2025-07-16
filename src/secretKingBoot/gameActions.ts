@@ -120,19 +120,12 @@ function updateGameStatus(gameState: SecretKingBootGameState): SecretKingBootGam
     const lastAction = updatedState.moveHistory[updatedState.moveHistory.length - 1];
     if (lastAction && ['move_piece', 'move_king_and_place', 'place_piece'].includes(lastAction.type)) {
       
-      // RÈGLE CRITIQUE: Si le joueur actuel est encore en échec, il doit continuer à jouer
-      const isCurrentPlayerInCheck = updatedState.gameStatus?.status === 'check' && 
-                                     updatedState.gameStatus?.player === updatedState.currentPlayer;
-      
-      if (!isCurrentPlayerInCheck) {
-        // Le joueur peut finir son tour (soit il n'est pas en échec, soit l'échec a été résolu)
-        updatedState.currentPlayer = updatedState.currentPlayer === 'white' ? 'black' : 'white';
-        if (updatedState.currentPlayer === 'white') {
-          updatedState.turn += 1;
-        }
-      } else {
-        // Le joueur est encore en échec, il doit continuer à jouer
-        console.log(`🚨 ${updatedState.currentPlayer} est encore en échec, doit continuer à jouer`);
+      // RÈGLE CRITIQUE: Toujours changer de joueur après un mouvement valide
+      // Si le joueur était en échec, il a eu l'obligation de sortir de l'échec en un coup
+      // Si son mouvement ne sort pas de l'échec, c'est un mouvement illégal qui ne devrait pas être accepté
+      updatedState.currentPlayer = updatedState.currentPlayer === 'white' ? 'black' : 'white';
+      if (updatedState.currentPlayer === 'white') {
+        updatedState.turn += 1;
       }
     }
   }
