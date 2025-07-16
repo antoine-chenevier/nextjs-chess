@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "cross-env NODE_OPTIONS=--openssl-legacy-provider next build",
     "start": "next start",
     "perf-play": "ts-node -O '{\"module\":\"commonjs\"}' perf/random_plays",
     "perf-depth": "ts-node -O '{\"module\":\"commonjs\"}' perf/deep_check",
@@ -16,6 +16,7 @@
     "@types/node": "14.14.6",
     "@types/react": "16.9.56",
     "chai": "4.2.0",
+    "cross-env": "^7.0.3",
     "mocha": "8.2.1",
     "native-hdr-histogram": "^1.0.0",
     "ts-node": "9.0.0",

@@ -946,7 +946,7 @@ function validatePawnMovement(
 ): { valid: boolean; reason?: string } {
   
   const direction = player === 'white' ? 1 : -1;
-  const playerZone = PAWN_ZONES[player].map(rank => rank - 1); // Convertir en index 0-based
+  const playerZone = (PAWN_ZONES[player] as readonly number[]).map(rank => rank - 1); // Convertir en index 0-based
   const middleLine = MIDDLE_LINE[player];
   
   // Mouvement vers l'avant uniquement (pas de recul)
