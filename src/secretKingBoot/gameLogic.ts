@@ -295,6 +295,88 @@ export function updateGameStateWithChessLogic(gameState: SecretKingBootGameState
 }
 
 /**
+ * Vérifie si un mouvement de pion est légal selon les règles de Secret King Boot
+ */
+export function isSecretKingBootPawnMoveLegal(
+  gameState: SecretKingBootGameState,
+  from: string,
+  to: string,
+  piece: string
+): boolean {
+  if (!piece.includes('Pawn')) {
+    return false; // Cette fonction ne s'applique qu'aux pions
+  }
+  
+  const fromCoords = positionToCoordinates(from);
+  const toCoords = positionToCoordinates(to);
+  
+  const isWhitePawn = piece.includes('White');
+  const direction = isWhitePawn ? 1 : -1; // Blanc monte, noir descend
+  
+  // Vérifier que le mouvement est vers l'avant uniquement
+  const deltaY = toCoords.y - fromCoords.y;
+  if (deltaY * direction <= 0) {
+    return false; // Le pion doit avancer
+  }
+  
+  // Vérifier que le mouvement est en ligne droite (même colonne)
+  if (fromCoords.x !== toCoords.x) {
+    // Pour l'instant, on ne gère que les mouvements en ligne droite
+    // La prise en diagonal pourra être ajoutée plus tard
+    return false;
+  }
+  
+  // Calculer la distance du mouvement
+  const distance = Math.abs(deltaY);
+  
+  // Déterminer si le pion a dépassé la moitié de l'échiquier
+  const currentRank = fromCoords.y;
+  const halfBoard = isWhitePawn ? 4 : 3; // Rang 4 pour les blancs (0-indexé), rang 3 pour les noirs
+  
+  let maxDistance: number;
+  if (isWhitePawn) {
+    // Pour les pions blancs : peuvent aller jusqu'au rang 4 avec mouvement long
+    maxDistance = currentRank < halfBoard ? 4 : 1;
+  } else {
+    // Pour les pions noirs : peuvent aller jusqu'au rang 3 avec mouvement long  
+    maxDistance = currentRank > halfBoard ? 4 : 1;
+  }
+  
+  // Vérifier que la distance ne dépasse pas le maximum autorisé
+  if (distance > maxDistance) {
+    console.warn(`Pion ${piece} en ${from}: distance ${distance} trop grande (max: ${maxDistance})`);
+    return false;
+  }
+  
+  // Vérifier que le chemin est libre
+  for (let i = 1; i <= distance; i++) {
+    const checkY = fromCoords.y + (i * direction);
+    const checkX = fromCoords.x;
+    
+    if (checkY < 0 || checkY > 7) {
+      return false; // Hors de l'échiquier
+    }
+    
+    const pieceOnPath = gameState.board[checkY][checkX];
+    if (i === distance) {
+      // Case de destination : doit être vide (pour l'instant, pas de prise)
+      if (pieceOnPath !== null) {
+        console.warn(`Case de destination ${to} occupée par ${pieceOnPath}`);
+        return false;
+      }
+    } else {
+      // Cases intermédiaires : doivent être vides
+      if (pieceOnPath !== null) {
+        console.warn(`Chemin bloqué en ${coordinatesToPosition(checkX, checkY)} par ${pieceOnPath}`);
+        return false;
+      }
+    }
+  }
+  
+  return true;
+}
+
+/**
  * Vérifie si un mouvement est légal selon la logique d'échecs classique
  */
 export function isChessMoveLegal(
@@ -325,24 +407,38 @@ export function isChessMoveLegal(
       return false;
     }
     
-    const chessBoard = convertToChessBoard(gameState);
     const fromCoords = positionToCoordinates(from);
-    const toCoords = positionToCoordinates(to);
+    const piece = gameState.board[fromCoords.y][fromCoords.x];
     
-    // Adapter les coordonnées pour le système d'échecs (inversion Y)
-    const fromChess = { x: fromCoords.x, y: 7 - fromCoords.y };
-    const toChess = { x: toCoords.x, y: 7 - toCoords.y };
-    
-    const piece = chessBoard.pieces[fromChess.x + fromChess.y * 8];
     if (!piece) {
       console.warn(`isChessMoveLegal: Aucune pièce en ${from}`);
       return false;
     }
     
     // Vérifier que la pièce appartient au joueur actuel
-    const expectedGroup = gameState.currentPlayer === 'white' ? 2 : 3;
-    if (piece.group !== expectedGroup) {
+    const isWhitePiece = piece.includes('White');
+    const expectedPlayer = gameState.currentPlayer === 'white';
+    if (isWhitePiece !== expectedPlayer) {
       console.warn(`isChessMoveLegal: Pièce ne appartient pas au joueur actuel (${from})`);
+      return false;
+    }
+    
+    // RÈGLES SPÉCIALES POUR LES PIONS SECRET KING BOOT
+    if (piece.includes('Pawn')) {
+      return isSecretKingBootPawnMoveLegal(gameState, from, to, piece);
+    }
+    
+    // Pour les autres pièces, utiliser la logique d'échecs classique
+    const chessBoard = convertToChessBoard(gameState);
+    const toCoords = positionToCoordinates(to);
+    
+    // Adapter les coordonnées pour le système d'échecs (inversion Y)
+    const fromChess = { x: fromCoords.x, y: 7 - fromCoords.y };
+    const toChess = { x: toCoords.x, y: 7 - toCoords.y };
+    
+    const chessPiece = chessBoard.pieces[fromChess.x + fromChess.y * 8];
+    if (!chessPiece) {
+      console.warn(`isChessMoveLegal: Conversion échouée pour la pièce en ${from}`);
       return false;
     }
     
@@ -350,12 +446,12 @@ export function isChessMoveLegal(
     const targetPiece = chessBoard.pieces[toChess.x + toChess.y * 8];
     if (targetPiece && targetPiece.type === PieceType.King) {
       console.error(`🚨 TENTATIVE DE CAPTURE DU ROI DÉTECTÉE: ${from} -> ${to}`);
-      console.error('Pièce qui attaque:', piece);
+      console.error('Pièce qui attaque:', chessPiece);
       console.error('Roi ciblé:', targetPiece);
       return false; // Empêcher absolument la capture du roi
     }
     
-    const legalMoves = chessGetAllLegalMoves(chessBoard, piece.group);
+    const legalMoves = chessGetAllLegalMoves(chessBoard, chessPiece.group);
     
     const isLegal = legalMoves.some(move => 
       move.from.x === fromChess.x && 
@@ -365,7 +461,7 @@ export function isChessMoveLegal(
     );
     
     if (!isLegal) {
-      console.warn(`Mouvement illégal: ${from} -> ${to} (groupe ${piece.group})`);
+      console.warn(`Mouvement illégal: ${from} -> ${to} (groupe ${chessPiece.group})`);
     }
     
     return isLegal;
