@@ -144,6 +144,101 @@ export function convertToChessBoard(gameState: SecretKingBootGameState): Board {
 }
 
 /**
+ * Répare un état de jeu corrompu (remet les rois en place si ils manquent)
+ */
+export function repairGameState(gameState: SecretKingBootGameState): SecretKingBootGameState {
+  const repairedState = JSON.parse(JSON.stringify(gameState)) as SecretKingBootGameState;
+  
+  // Vérifier et réparer la présence des rois
+  let whiteKingFound = false;
+  let blackKingFound = false;
+  
+  for (let rank = 0; rank < 8; rank++) {
+    for (let file = 0; file < 8; file++) {
+      const piece = repairedState.board[rank][file];
+      if (piece === 'WhiteKing') {
+        whiteKingFound = true;
+      } else if (piece === 'BlackKing') {
+        blackKingFound = true;
+      }
+    }
+  }
+  
+  // Remettre le roi blanc si manquant
+  if (!whiteKingFound) {
+    console.warn('🔧 RÉPARATION: Remise en place du roi blanc');
+    if (repairedState.whiteKingPosition === 'E1') {
+      repairedState.board[0][4] = 'WhiteKing';
+    } else {
+      repairedState.board[0][3] = 'WhiteKing'; // D1 par défaut
+      repairedState.whiteKingPosition = 'D1';
+    }
+  }
+  
+  // Remettre le roi noir si manquant
+  if (!blackKingFound) {
+    console.warn('🔧 RÉPARATION: Remise en place du roi noir');
+    if (repairedState.blackKingPosition === 'E8') {
+      repairedState.board[7][4] = 'BlackKing';
+    } else {
+      repairedState.board[7][3] = 'BlackKing'; // D8 par défaut
+      repairedState.blackKingPosition = 'D8';
+    }
+  }
+  
+  return repairedState;
+}
+
+/**
+ * Valide l'intégrité de l'état du jeu (notamment la présence des rois)
+ */
+export function validateGameIntegrity(gameState: SecretKingBootGameState): {
+  valid: boolean;
+  errors: string[];
+} {
+  const errors: string[] = [];
+  
+  // Vérifier que les deux rois sont présents sur l'échiquier
+  let whiteKingFound = false;
+  let blackKingFound = false;
+  
+  for (let rank = 0; rank < 8; rank++) {
+    for (let file = 0; file < 8; file++) {
+      const piece = gameState.board[rank][file];
+      if (piece === 'WhiteKing') {
+        whiteKingFound = true;
+      } else if (piece === 'BlackKing') {
+        blackKingFound = true;
+      }
+    }
+  }
+  
+  if (!whiteKingFound) {
+    errors.push('🚨 ROI BLANC MANQUANT sur l\'échiquier!');
+  }
+  
+  if (!blackKingFound) {
+    errors.push('🚨 ROI NOIR MANQUANT sur l\'échiquier!');
+  }
+  
+  // Vérifier la cohérence des positions stockées
+  if (gameState.gamePhase !== 'setup') {
+    if (gameState.whiteKingPosition && !whiteKingFound) {
+      errors.push('Position du roi blanc stockée mais roi absent de l\'échiquier');
+    }
+    
+    if (gameState.blackKingPosition && !blackKingFound) {
+      errors.push('Position du roi noir stockée mais roi absent de l\'échiquier');
+    }
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+
+/**
  * Met à jour l'état du jeu avec la logique d'échecs classique
  */
 export function updateGameStateWithChessLogic(gameState: SecretKingBootGameState): SecretKingBootGameState {
@@ -207,25 +302,62 @@ export function isChessMoveLegal(
   from: string, 
   to: string
 ): boolean {
-  const chessBoard = convertToChessBoard(gameState);
-  const fromCoords = positionToCoordinates(from);
-  const toCoords = positionToCoordinates(to);
-  
-  // Adapter les coordonnées pour le système d'échecs (inversion Y)
-  const fromChess = { x: fromCoords.x, y: 7 - fromCoords.y };
-  const toChess = { x: toCoords.x, y: 7 - toCoords.y };
-  
-  const piece = chessBoard.pieces[fromChess.x + fromChess.y * 8];
-  if (!piece) return false;
-  
-  const legalMoves = chessGetAllLegalMoves(chessBoard, piece.group);
-  
-  return legalMoves.some(move => 
-    move.from.x === fromChess.x && 
-    move.from.y === fromChess.y &&
-    move.dest.x === toChess.x && 
-    move.dest.y === toChess.y
-  );
+  try {
+    // Vérifier d'abord l'intégrité du jeu
+    const integrity = validateGameIntegrity(gameState);
+    if (!integrity.valid) {
+      console.error('isChessMoveLegal: Intégrité compromise', integrity.errors);
+      return false;
+    }
+    
+    const chessBoard = convertToChessBoard(gameState);
+    const fromCoords = positionToCoordinates(from);
+    const toCoords = positionToCoordinates(to);
+    
+    // Adapter les coordonnées pour le système d'échecs (inversion Y)
+    const fromChess = { x: fromCoords.x, y: 7 - fromCoords.y };
+    const toChess = { x: toCoords.x, y: 7 - toCoords.y };
+    
+    const piece = chessBoard.pieces[fromChess.x + fromChess.y * 8];
+    if (!piece) {
+      console.warn(`isChessMoveLegal: Aucune pièce en ${from}`);
+      return false;
+    }
+    
+    // Vérifier que la pièce appartient au joueur actuel
+    const expectedGroup = gameState.currentPlayer === 'white' ? 2 : 3;
+    if (piece.group !== expectedGroup) {
+      console.warn(`isChessMoveLegal: Pièce ne appartient pas au joueur actuel (${from})`);
+      return false;
+    }
+    
+    // Vérifier que la destination ne contient pas le roi adverse
+    const targetPiece = chessBoard.pieces[toChess.x + toChess.y * 8];
+    if (targetPiece && targetPiece.type === PieceType.King) {
+      console.error(`🚨 TENTATIVE DE CAPTURE DU ROI DÉTECTÉE: ${from} -> ${to}`);
+      console.error('Pièce qui attaque:', piece);
+      console.error('Roi ciblé:', targetPiece);
+      return false; // Empêcher absolument la capture du roi
+    }
+    
+    const legalMoves = chessGetAllLegalMoves(chessBoard, piece.group);
+    
+    const isLegal = legalMoves.some(move => 
+      move.from.x === fromChess.x && 
+      move.from.y === fromChess.y &&
+      move.dest.x === toChess.x && 
+      move.dest.y === toChess.y
+    );
+    
+    if (!isLegal) {
+      console.warn(`Mouvement illégal: ${from} -> ${to} (groupe ${piece.group})`);
+    }
+    
+    return isLegal;
+  } catch (error) {
+    console.error('Erreur dans isChessMoveLegal:', error);
+    return false;
+  }
 }
 
 /**

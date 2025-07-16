@@ -5,7 +5,7 @@ import {
   RESERVE_LIMITS,
   EXCHANGE_COSTS
 } from './types';
-import { getGameStatus, updateGameStateWithChessLogic, isChessMoveLegal } from './gameLogic';
+import { getGameStatus, updateGameStateWithChessLogic, isChessMoveLegal, validateGameIntegrity } from './gameLogic';
 
 /**
  * Applique une action validée sur l'état du jeu
@@ -14,6 +14,21 @@ export function applyAction(
   gameState: SecretKingBootGameState, 
   action: GameAction
 ): SecretKingBootGameState {
+  
+  // VALIDATION CRITIQUE : Empêcher toute action qui mettrait le roi en échec
+  if (gameState.gamePhase === 'playing' && 
+      (action.type === 'move_piece' || action.type === 'move_king_and_place')) {
+    
+    // Vérifier que le mouvement est légal selon les règles d'échecs
+    if (action.from && action.to && !isChessMoveLegal(gameState, action.from, action.to)) {
+      console.error(`MOUVEMENT ILLÉGAL BLOQUÉ: ${action.from} -> ${action.to}`);
+      console.error('Action:', action);
+      console.error('État du jeu:', gameState.gameStatus);
+      
+      // Retourner l'état inchangé
+      return gameState;
+    }
+  }
   
   const newState = JSON.parse(JSON.stringify(gameState)) as SecretKingBootGameState;
   
@@ -65,6 +80,27 @@ export function applyAction(
  * Met à jour le statut du jeu (échec, échec et mat, pat)
  */
 function updateGameStatus(gameState: SecretKingBootGameState): SecretKingBootGameState {
+  // VALIDATION CRITIQUE : Vérifier l'intégrité du jeu
+  const integrity = validateGameIntegrity(gameState);
+  if (!integrity.valid) {
+    console.error('🚨 INTÉGRITÉ DU JEU COMPROMISE!');
+    integrity.errors.forEach(error => console.error(error));
+    
+    // Alerter l'utilisateur
+    alert('ERREUR CRITIQUE: ' + integrity.errors.join('\n'));
+    
+    // Retourner l'état avec un marqueur d'erreur
+    return {
+      ...gameState,
+      gameStatus: {
+        status: 'checkmate',
+        winner: 'draw',
+        reason: 'Erreur de jeu: ' + integrity.errors[0]
+      },
+      gamePhase: 'ended'
+    };
+  }
+  
   // Utiliser la logique d'échecs classique pour mettre à jour l'état
   const updatedState = updateGameStateWithChessLogic(gameState);
   
@@ -170,6 +206,19 @@ function applyMovePiece(
   // Gérer la capture
   const capturedPiece = gameState.board[toRank][toFile];
   if (capturedPiece) {
+    // VÉRIFICATION CRITIQUE : Un roi ne doit JAMAIS être capturé
+    if (capturedPiece.includes('King')) {
+      console.error('🚨 ERREUR CRITIQUE: Tentative de capture du roi!');
+      console.error('Pièce qui attaque:', piece);
+      console.error('Roi attaqué:', capturedPiece);
+      console.error('Position:', action.to);
+      console.error('État du jeu:', gameState.gameStatus);
+      
+      // Arrêter immédiatement et retourner l'état inchangé
+      alert('ERREUR: Le roi ne peut pas être capturé! Vérifiez la logique d\'échec.');
+      return gameState;
+    }
+    
     // Remettre la pièce capturée en réserve (si c'est autorisé)
     addCapturedPieceToReserve(gameState, capturedPiece, action.player);
   }

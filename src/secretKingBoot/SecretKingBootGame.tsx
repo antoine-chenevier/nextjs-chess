@@ -21,6 +21,7 @@ import {
   analyzeGameState 
 } from './gameAnalysis';
 import { createBot, BotDifficulty, Bot, getDifficultyDescription } from './bot';
+import { validateGameIntegrity } from './gameLogic';
 
 interface SecretKingBootGameProps {
   onGameEnd?: (winner: 'white' | 'black' | 'draw') => void;
@@ -328,6 +329,24 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
       makeBotMove();
     }
   }, [gameState.currentPlayer, isPlayerVsBot, bot, gameState, isBotThinking]);
+
+  // Effet pour surveiller l'intégrité du jeu
+  useEffect(() => {
+    if (gameState.gamePhase === 'playing') {
+      const integrity = validateGameIntegrity(gameState);
+      if (!integrity.valid) {
+        console.error('🚨 PROBLÈME D\'INTÉGRITÉ DÉTECTÉ:');
+        integrity.errors.forEach(error => console.error(error));
+        
+        // Afficher une alerte à l'utilisateur
+        alert('ERREUR CRITIQUE DÉTECTÉE:\n' + integrity.errors.join('\n') + 
+              '\n\nLe jeu va être réinitialisé pour éviter la corruption.');
+        
+        // Réinitialiser le jeu
+        resetGame();
+      }
+    }
+  }, [gameState, resetGame]);
   
   const availableActions = getAvailableActions(gameState);
   
