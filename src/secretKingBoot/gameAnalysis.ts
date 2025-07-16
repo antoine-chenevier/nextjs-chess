@@ -468,17 +468,9 @@ function getExchangeMoves(gameState: SecretKingBootGameState): GameAction[] {
     });
   }
   
-  // Dame = 5 pions (si possible)
-  if (reserve.pawns >= 5 && reserve.queens < 1) {
-    moves.push({
-      type: 'exchange_pieces',
-      player: gameState.currentPlayer,
-      turn: gameState.turn,
-      exchangeFrom: 'pawn',
-      exchangeTo: 'queen',
-      cost: 5
-    });
-  }
+  // Note: Les dames ne peuvent être obtenues que par promotion de pions,
+  // pas par échange direct de pions
+  // Dame = promotion uniquement (pas d'échange de pions contre dame)
   
   return moves;
 }

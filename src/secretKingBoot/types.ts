@@ -76,11 +76,12 @@ export const RESERVE_LIMITS: Reserve = {
 };
 
 // Coûts d'échange (en pions)
+// Note: Les dames ne peuvent être obtenues que par promotion, pas par échange
 export const EXCHANGE_COSTS = {
   knight: 2,
   bishop: 3,
-  rook: 4,
-  queen: 5
+  rook: 4
+  // queen: pas d'échange possible, promotion uniquement
 } as const;
 
 // Positions valides pour les rois
