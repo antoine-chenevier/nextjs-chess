@@ -26,6 +26,17 @@ export function getAvailableActions(gameState: SecretKingBootGameState): ActionT
   
   // Phase de jeu normal
   if (gameState.gamePhase === 'playing') {
+    
+    // RÈGLE CRITIQUE: Si le roi est en échec, seuls les mouvements de pièces sont autorisés
+    if (gameState.gameStatus?.status === 'check' && gameState.gameStatus?.player === gameState.currentPlayer) {
+      // En échec, on ne peut que déplacer des pièces pour sortir d'échec
+      if (hasMovablePieces(gameState)) {
+        actions.push('move_piece');
+      }
+      return actions; // Pas d'autres actions possibles en échec
+    }
+    
+    // Jeu normal (pas en échec)
     // Toujours possible de générer un pion
     actions.push('generate_pawn');
     

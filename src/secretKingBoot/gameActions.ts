@@ -103,30 +103,32 @@ function updateGameStatus(gameState: SecretKingBootGameState): SecretKingBootGam
       };
     }
   }
-  
-  // Utiliser la logique d'échecs classique pour mettre à jour l'état SEULEMENT pendant la phase de jeu
-  let updatedState = gameState;
-  if (gameState.gamePhase === 'playing') {
-    updatedState = updateGameStateWithChessLogic(gameState);
-  } else {
-    // Pendant la phase de setup, juste copier l'état
-    updatedState = { ...gameState };
-  }
+
+  // Pendant la phase de setup, juste copier l'état
+  let updatedState = { ...gameState };
   
   // Ne changer de joueur que si ce n'est pas une action de placement de roi (phase setup)
-  // et si la partie n'est pas terminée
-  if (updatedState.gamePhase === 'playing' && updatedState.gameStatus?.status !== 'checkmate' && updatedState.gameStatus?.status !== 'stalemate') {
+  // et si la partie n'est pas terminée (échec et mat ou pat)
+  if (updatedState.gamePhase === 'playing') {
     // Pour certaines actions, changer de joueur
     const lastAction = updatedState.moveHistory[updatedState.moveHistory.length - 1];
+    
     if (lastAction && ['move_piece', 'move_king_and_place', 'place_piece'].includes(lastAction.type)) {
-      
       // RÈGLE CRITIQUE: Toujours changer de joueur après un mouvement valide
-      // Si le joueur était en échec, il a eu l'obligation de sortir de l'échec en un coup
-      // Si son mouvement ne sort pas de l'échec, c'est un mouvement illégal qui ne devrait pas être accepté
+      // Même si le joueur était en échec, après avoir joué un mouvement valide, c'est au tour de l'adversaire
       updatedState.currentPlayer = updatedState.currentPlayer === 'white' ? 'black' : 'white';
+      
       if (updatedState.currentPlayer === 'white') {
         updatedState.turn += 1;
       }
+    }
+    
+    // Maintenant recalculer l'état d'échec pour le nouveau joueur actuel
+    updatedState = updateGameStateWithChessLogic(updatedState);
+    
+    // Si la partie est terminée (échec et mat ou pat), ne pas permettre d'autres actions
+    if (updatedState.gameStatus?.status === 'checkmate' || updatedState.gameStatus?.status === 'stalemate') {
+      updatedState.gamePhase = 'ended';
     }
   }
   
@@ -182,8 +184,8 @@ function applyGeneratePawn(
     gameState.turn++;
   }
   
-  // Mettre à jour le statut du jeu
-  return updateGameStatus(gameState);
+  // Ne pas appeler updateGameStatus ici - sera fait dans applyAction
+  return gameState;
 }
 
 /**
@@ -250,8 +252,8 @@ function applyMovePiece(
   // Ne pas changer de joueur ici - sera géré par updateGameStatus selon l'état d'échec
   // Le changement de tour se fait seulement si le joueur n'est plus en échec
   
-  // Mettre à jour le statut du jeu
-  return updateGameStatus(gameState);
+  // Ne pas appeler updateGameStatus ici - sera fait dans applyAction
+  return gameState;
 }
 
 /**
@@ -280,7 +282,8 @@ function applyMoveKingAndPlace(
   removePieceFromReserve(reserve, action.piece!);
   
   // Mettre à jour le statut du jeu après le placement
-  return updateGameStatus(gameState);
+  // Ne pas appeler updateGameStatus ici - sera fait dans applyAction
+  return gameState;
 }
 
 /**
@@ -304,8 +307,8 @@ function applyPlacePiece(
   
   // Ne pas changer de joueur ici - sera géré par updateGameStatus selon l'état d'échec
   
-  // Mettre à jour le statut du jeu
-  return updateGameStatus(gameState);
+  // Ne pas appeler updateGameStatus ici - sera fait dans applyAction
+  return gameState;
 }
 
 /**
@@ -327,8 +330,8 @@ function applyExchangePieces(
   
   // Ne pas changer de joueur ici - sera géré par updateGameStatus selon l'état d'échec
   
-  // Mettre à jour le statut du jeu
-  return updateGameStatus(gameState);
+  // Ne pas appeler updateGameStatus ici - sera fait dans applyAction
+  return gameState;
 }
 
 /**
@@ -346,11 +349,8 @@ function applyPromotePawn(
   
   // Ne pas changer de joueur ici - sera géré par updateGameStatus selon l'état d'échec
   
-  // Mettre à jour le statut du jeu
-  return updateGameStatus(gameState);
-  
-  // Mettre à jour le statut du jeu
-  return updateGameStatus(gameState);
+  // Ne pas appeler updateGameStatus ici - sera fait dans applyAction
+  return gameState;
 }
 
 // Fonctions utilitaires

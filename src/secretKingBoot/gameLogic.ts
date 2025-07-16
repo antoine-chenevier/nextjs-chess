@@ -531,6 +531,21 @@ export function isValidAction(
     return { valid: false, reason: "Ce n'est pas le tour de ce joueur" };
   }
 
+  // RÈGLE CRITIQUE: Si le roi est en échec, seules certaines actions sont autorisées
+  if (gameState.gamePhase === 'playing' && gameState.gameStatus?.status === 'check' && gameState.gameStatus?.player === action.player) {
+    // Quand le roi est en échec, seuls les mouvements de pièces sont autorisés
+    // (pas de génération, placement ou échange)
+    if (action.type !== 'move_piece') {
+      return { 
+        valid: false, 
+        reason: "Votre roi est en échec ! Vous devez impérativement déplacer une pièce pour sortir d'échec (déplacer le roi, bloquer l'attaque, ou capturer l'attaquant)." 
+      };
+    }
+    
+    // Pour les mouvements de pièces en échec, vérifier que le mouvement sort effectivement d'échec
+    // Cette vérification sera faite dans validateMovePiece
+  }
+
   switch (action.type) {
     case 'place_king':
       return validatePlaceKing(gameState, action);
@@ -646,6 +661,37 @@ function validateMovePiece(
     const isLegal = isChessMoveLegal(gameState, action.from, action.to);
     if (!isLegal) {
       return { valid: false, reason: "Mouvement illégal selon les règles d'échecs" };
+    }
+    
+    // VÉRIFICATION CRITIQUE: Si le roi était en échec, vérifier que le mouvement le sort d'échec
+    if (gameState.gameStatus?.status === 'check' && gameState.gameStatus?.player === action.player) {
+      // Simuler le mouvement pour vérifier qu'il sort d'échec
+      const simulatedState = JSON.parse(JSON.stringify(gameState)) as SecretKingBootGameState;
+      
+      // Appliquer le mouvement temporairement
+      const fromCoords = positionToCoordinates(action.from);
+      const toCoords = positionToCoordinates(action.to);
+      
+      simulatedState.board[toCoords.y][toCoords.x] = simulatedState.board[fromCoords.y][fromCoords.x];
+      simulatedState.board[fromCoords.y][fromCoords.x] = null;
+      
+      // Mettre à jour la position du roi si c'est lui qui bouge
+      if (piece.includes('King')) {
+        if (action.player === 'white') {
+          simulatedState.whiteKingPosition = action.to as "D1" | "E1";
+        } else {
+          simulatedState.blackKingPosition = action.to as "D8" | "E8";
+        }
+      }
+      
+      // Vérifier si le roi est encore en échec après ce mouvement
+      const stillInCheck = isKingInCheck(simulatedState, action.player);
+      if (stillInCheck) {
+        return { 
+          valid: false, 
+          reason: "Ce mouvement ne sort pas le roi d'échec. Vous devez impérativement sortir d'échec." 
+        };
+      }
     }
   }
   
