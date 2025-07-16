@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import styles from './SecretKingBoot.module.css';
 import { 
   SecretKingBootGameState, 
@@ -20,6 +20,7 @@ import {
   getPossibleMoves,
   analyzeGameState 
 } from './gameAnalysis';
+import { createBot, BotDifficulty, Bot, getDifficultyDescription } from './bot';
 
 interface SecretKingBootGameProps {
   onGameEnd?: (winner: 'white' | 'black' | 'draw') => void;
@@ -40,6 +41,12 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
   const [selectedPieceForKingMove, setSelectedPieceForKingMove] = useState<string | null>(null);
   const [selectedPieceForPlacement, setSelectedPieceForPlacement] = useState<string | null>(null);
   const [selectedPiecePosition, setSelectedPiecePosition] = useState<string | null>(null);
+  
+  // États pour le bot
+  const [bot, setBot] = useState<Bot | null>(null);
+  const [isPlayerVsBot, setIsPlayerVsBot] = useState(false);
+  const [botDifficulty, setBotDifficulty] = useState(BotDifficulty.MEDIUM);
+  const [isBotThinking, setIsBotThinking] = useState(false);
   
   // Effectuer une action
   const handleAction = useCallback((action: GameAction) => {
@@ -279,7 +286,48 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
     setSelectedPieceForPlacement(null);
     setSelectedPiecePosition(null);
     setSelectedPieceForPlacement(null);
+    setIsBotThinking(false);
   }, []);
+  
+  // Fonctions pour gérer le bot
+  const enableBotMode = useCallback((difficulty: BotDifficulty) => {
+    const newBot = createBot(difficulty);
+    setBot(newBot);
+    setIsPlayerVsBot(true);
+    setBotDifficulty(difficulty);
+    setIsBotThinking(false);
+  }, []);
+
+  const disableBotMode = useCallback(() => {
+    setBot(null);
+    setIsPlayerVsBot(false);
+    setIsBotThinking(false);
+  }, []);
+
+  // Effet pour faire jouer le bot quand c'est son tour
+  useEffect(() => {
+    if (isPlayerVsBot && bot && 
+        gameState.currentPlayer === 'black' && 
+        gameState.gamePhase !== 'ended' &&
+        !isBotThinking) {
+      
+      setIsBotThinking(true);
+      
+      const makeBotMove = async () => {
+        try {
+          const action = await bot.makeMove(gameState);
+          const newState = applyAction(gameState, action);
+          setGameState(newState);
+        } catch (error) {
+          console.error('Erreur du bot:', error);
+        } finally {
+          setIsBotThinking(false);
+        }
+      };
+      
+      makeBotMove();
+    }
+  }, [gameState.currentPlayer, isPlayerVsBot, bot, gameState, isBotThinking]);
   
   const availableActions = getAvailableActions(gameState);
   
@@ -330,6 +378,55 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
             Test Mat
           </button>
         </div>
+        
+        {/* Contrôles du bot */}
+        <div className={styles.botControls}>
+          <h3>Mode de jeu</h3>
+          {!isPlayerVsBot ? (
+            <div className={styles.botSelection}>
+              <p>Jouer contre :</p>
+              <div className={styles.difficultyButtons}>
+                <button 
+                  onClick={() => enableBotMode(BotDifficulty.EASY)}
+                  className={styles.botButton}
+                  title={getDifficultyDescription(BotDifficulty.EASY)}
+                >
+                  🤖 Bot Facile
+                </button>
+                <button 
+                  onClick={() => enableBotMode(BotDifficulty.MEDIUM)}
+                  className={styles.botButton}
+                  title={getDifficultyDescription(BotDifficulty.MEDIUM)}
+                >
+                  🤖 Bot Moyen
+                </button>
+                <button 
+                  onClick={() => enableBotMode(BotDifficulty.HARD)}
+                  className={styles.botButton}
+                  title={getDifficultyDescription(BotDifficulty.HARD)}
+                >
+                  🤖 Bot Difficile
+                </button>
+              </div>
+              <button 
+                onClick={disableBotMode}
+                className={styles.humanButton}
+              >
+                👥 2 Joueurs
+              </button>
+            </div>
+          ) : (
+            <div className={styles.botStatus}>
+              <p>🤖 Mode Bot ({botDifficulty})</p>
+              {isBotThinking && (
+                <p className={styles.botThinking}>🤔 Le bot réfléchit...</p>
+              )}
+              <button onClick={disableBotMode} className={styles.humanButton}>
+                👥 Passer en mode 2 joueurs
+              </button>
+            </div>
+          )}
+        </div>
       </div>
       
       <div className={styles.gameContent}>
@@ -343,6 +440,16 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
               // Empêcher les actions si la partie est terminée
               if (gameState.gamePhase === 'ended') {
                 alert('La partie est terminée. Commencez une nouvelle partie.');
+                return;
+              }
+              
+              // Empêcher les actions si c'est le tour du bot
+              if (isPlayerVsBot && gameState.currentPlayer === 'black') {
+                if (isBotThinking) {
+                  alert('Le bot est en train de réfléchir...');
+                } else {
+                  alert('C\'est le tour du bot.');
+                }
                 return;
               }
               
