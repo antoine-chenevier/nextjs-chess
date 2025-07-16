@@ -303,7 +303,22 @@ export function isChessMoveLegal(
   to: string
 ): boolean {
   try {
-    // Vérifier d'abord l'intégrité du jeu
+    // Pendant la phase de setup, être plus permissif
+    if (gameState.gamePhase !== 'playing') {
+      // Juste vérifier que la case de destination n'a pas déjà une pièce
+      const toCoords = positionToCoordinates(to);
+      const targetPiece = gameState.board[toCoords.y][toCoords.x];
+      
+      // Permettre le placement si la case est vide ou si on place le roi
+      if (!targetPiece) {
+        return true;
+      }
+      
+      // Empêcher le remplacement d'une autre pièce
+      return false;
+    }
+    
+    // Vérifier d'abord l'intégrité du jeu SEULEMENT pendant la phase de jeu
     const integrity = validateGameIntegrity(gameState);
     if (!integrity.valid) {
       console.error('isChessMoveLegal: Intégrité compromise', integrity.errors);

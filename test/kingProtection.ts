@@ -18,7 +18,10 @@ function testKingCaptureProtection() {
   // Créer une situation où le roi pourrait être capturé
   const gameState = createInitialGameState();
   gameState.gamePhase = 'playing';
-  gameState.currentPlayer = 'white';
+  gameState.currentPlayer = 'black'; // Tour noire va essayer de capturer
+  
+  // Créer un plateau vide
+  gameState.board = Array(8).fill(null).map(() => Array(8).fill(null));
   
   // Placer le roi blanc en E1
   gameState.board[0][4] = 'WhiteKing';
@@ -156,47 +159,29 @@ function testCheckMovementValidation() {
   gameState.gamePhase = 'playing';
   gameState.currentPlayer = 'white';
   
-  // Créer une situation d'échec simple
+  // Créer un plateau vide d'abord
+  gameState.board = Array(8).fill(null).map(() => Array(8).fill(null));
+  
+  // Placer les rois
   gameState.board[0][4] = 'WhiteKing';   // Roi blanc en E1
   gameState.board[7][4] = 'BlackKing';   // Roi noir en E8
-  gameState.board[7][0] = 'BlackRook';   // Tour noire en A8
-  gameState.board[0][0] = null;          // Case A1 libre
+  gameState.whiteKingPosition = 'E1';
+  gameState.blackKingPosition = 'E8';
   
-  // Déplacer la tour noire pour mettre le roi blanc en échec
-  gameState.board[0][0] = 'BlackRook';   // Tour noire en A1 (échec au roi en E1)
-  gameState.board[7][0] = null;
+  // Placer une tour noire en A1 qui met le roi blanc en échec
+  gameState.board[0][0] = 'BlackRook';   // Tour noire en A1
   
-  console.log('Situation créée: Roi blanc en échec par tour noire en A1');
+  console.log('Situation créée: Roi blanc en E1 en échec par tour noire en A1');
   
-  // Tenter un mouvement qui ne résout pas l'échec
-  const badMove: GameAction = {
-    type: 'move_piece',
-    player: 'white',
-    turn: 1,
-    from: 'E1',
-    to: 'F1', // Mouvement qui laisse le roi en échec
-    piece: 'WhiteKing'
-  };
-  
-  console.log('Test: Mouvement E1 -> F1 (reste en échec)');
-  
+  // Test 1: Mouvement du roi qui reste en échec (sur la même rangée)
+  console.log('Test 1: Mouvement E1 -> F1 (reste en échec sur la rangée)');
   const isLegalBadMove = isChessMoveLegal(gameState, 'E1', 'F1');
-  console.log(`Mouvement illégal détecté: ${!isLegalBadMove}`);
+  console.log(`Mouvement qui reste en échec rejeté: ${!isLegalBadMove}`);
   
-  // Tenter un mouvement qui résout l'échec
-  const goodMove: GameAction = {
-    type: 'move_piece',
-    player: 'white',
-    turn: 1,
-    from: 'E1',
-    to: 'D1', // Mouvement qui sort d'échec
-    piece: 'WhiteKing'
-  };
-  
-  console.log('Test: Mouvement E1 -> D1 (sort d\'échec)');
-  
-  const isLegalGoodMove = isChessMoveLegal(gameState, 'E1', 'D1');
-  console.log(`Mouvement légal détecté: ${isLegalGoodMove}`);
+  // Test 2: Mouvement du roi qui sort d'échec
+  console.log('Test 2: Mouvement E1 -> E2 (sort d\'échec)');
+  const isLegalGoodMove = isChessMoveLegal(gameState, 'E1', 'E2');
+  console.log(`Mouvement qui sort d'échec accepté: ${isLegalGoodMove}`);
   
   if (isLegalBadMove) {
     console.error('❌ ÉCHEC: Mouvement qui laisse en échec accepté');

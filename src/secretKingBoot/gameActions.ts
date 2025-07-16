@@ -16,8 +16,9 @@ export function applyAction(
 ): SecretKingBootGameState {
   
   // VALIDATION CRITIQUE : Empêcher toute action qui mettrait le roi en échec
+  // SEULEMENT pendant la phase de jeu (pas pendant le setup)
   if (gameState.gamePhase === 'playing' && 
-      (action.type === 'move_piece' || action.type === 'move_king_and_place')) {
+      action.type === 'move_piece') {
     
     // Vérifier que le mouvement est légal selon les règles d'échecs
     if (action.from && action.to && !isChessMoveLegal(gameState, action.from, action.to)) {
@@ -80,29 +81,37 @@ export function applyAction(
  * Met à jour le statut du jeu (échec, échec et mat, pat)
  */
 function updateGameStatus(gameState: SecretKingBootGameState): SecretKingBootGameState {
-  // VALIDATION CRITIQUE : Vérifier l'intégrité du jeu
-  const integrity = validateGameIntegrity(gameState);
-  if (!integrity.valid) {
-    console.error('🚨 INTÉGRITÉ DU JEU COMPROMISE!');
-    integrity.errors.forEach(error => console.error(error));
-    
-    // Alerter l'utilisateur
-    alert('ERREUR CRITIQUE: ' + integrity.errors.join('\n'));
-    
-    // Retourner l'état avec un marqueur d'erreur
-    return {
-      ...gameState,
-      gameStatus: {
-        status: 'checkmate',
-        winner: 'draw',
-        reason: 'Erreur de jeu: ' + integrity.errors[0]
-      },
-      gamePhase: 'ended'
-    };
+  // VALIDATION CRITIQUE : Vérifier l'intégrité du jeu SEULEMENT pendant la phase de jeu
+  if (gameState.gamePhase === 'playing') {
+    const integrity = validateGameIntegrity(gameState);
+    if (!integrity.valid) {
+      console.error('🚨 INTÉGRITÉ DU JEU COMPROMISE!');
+      integrity.errors.forEach(error => console.error(error));
+      
+      // Alerter l'utilisateur
+      alert('ERREUR CRITIQUE: ' + integrity.errors.join('\n'));
+      
+      // Retourner l'état avec un marqueur d'erreur
+      return {
+        ...gameState,
+        gameStatus: {
+          status: 'checkmate',
+          winner: 'draw',
+          reason: 'Erreur de jeu: ' + integrity.errors[0]
+        },
+        gamePhase: 'ended'
+      };
+    }
   }
   
-  // Utiliser la logique d'échecs classique pour mettre à jour l'état
-  const updatedState = updateGameStateWithChessLogic(gameState);
+  // Utiliser la logique d'échecs classique pour mettre à jour l'état SEULEMENT pendant la phase de jeu
+  let updatedState = gameState;
+  if (gameState.gamePhase === 'playing') {
+    updatedState = updateGameStateWithChessLogic(gameState);
+  } else {
+    // Pendant la phase de setup, juste copier l'état
+    updatedState = { ...gameState };
+  }
   
   // Ne changer de joueur que si ce n'est pas une action de placement de roi (phase setup)
   // et si la partie n'est pas terminée
