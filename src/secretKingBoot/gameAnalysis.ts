@@ -302,25 +302,54 @@ function generateMovesForPiece(
   }
   
   else if (piece.includes('Pawn')) {
-    // Mouvements des pions - version simplifiée
+    // Mouvements des pions - version Secret King Boot
     const direction = player === 'white' ? 1 : -1;
-    const startRank = player === 'white' ? 1 : 6;
+    const currentRank = position.y;
     
-    // Avancement d'une case
-    const oneStep = position.y + direction;
-    if (isValidSquare(position.x, oneStep) && !board[oneStep][position.x]) {
-      moves.push({ x: position.x, y: oneStep });
-      
-      // Avancement de deux cases depuis la position initiale
-      if (position.y === startRank) {
-        const twoSteps = position.y + (2 * direction);
-        if (isValidSquare(position.x, twoSteps) && !board[twoSteps][position.x]) {
-          moves.push({ x: position.x, y: twoSteps });
-        }
-      }
+    // NOUVELLES RÈGLES SECRET KING BOOT:
+    // - Pions blancs sur la 1ère rangée (rang 0) peuvent aller jusqu'à la 4ème rangée (rang 3)
+    // - Pions noirs sur la 8ème rangée (rang 7) peuvent aller jusqu'à la 5ème rangée (rang 4)
+    let maxSteps = 1; // Par défaut, 1 case
+    let maxTargetRank = currentRank + direction;
+    
+    if (player === 'white' && currentRank === 0) {
+      // Pion blanc sur la 1ère rangée peut aller jusqu'à la 4ème rangée
+      maxSteps = 4;
+      maxTargetRank = 3;
+    } else if (player === 'black' && currentRank === 7) {
+      // Pion noir sur la 8ème rangée peut aller jusqu'à la 5ème rangée
+      maxSteps = 4;
+      maxTargetRank = 4;
     }
     
-    // Captures diagonales
+    // Générer tous les mouvements possibles
+    for (let steps = 1; steps <= maxSteps; steps++) {
+      const newY = currentRank + (steps * direction);
+      
+      // Vérifier les limites de l'échiquier
+      if (!isValidSquare(position.x, newY)) {
+        break;
+      }
+      
+      // Vérifier les limites spéciales pour les pions initiaux
+      if (maxSteps > 1) {
+        if (player === 'white' && newY > maxTargetRank) {
+          break;
+        }
+        if (player === 'black' && newY < maxTargetRank) {
+          break;
+        }
+      }
+      
+      // Vérifier que la case est libre
+      if (board[newY][position.x]) {
+        break; // Chemin bloqué
+      }
+      
+      moves.push({ x: position.x, y: newY });
+    }
+    
+    // Captures diagonales (toujours possible)
     for (const dx of [-1, 1]) {
       const captureX = position.x + dx;
       const captureY = position.y + direction;

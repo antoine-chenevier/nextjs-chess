@@ -333,17 +333,37 @@ export function isSecretKingBootPawnMoveLegal(
   // Calculer la distance du mouvement
   const distance = Math.abs(deltaY);
   
-  // Déterminer si le pion a dépassé la moitié de l'échiquier
+  // NOUVELLES RÈGLES: 
+  // - Pions blancs sur la 1ère rangée (rang 0) peuvent aller jusqu'à la 4ème rangée (rang 3)
+  // - Pions noirs sur la 8ème rangée (rang 7) peuvent aller jusqu'à la 5ème rangée (rang 4)
   const currentRank = fromCoords.y;
-  const halfBoard = isWhitePawn ? 4 : 3; // Rang 4 pour les blancs (0-indexé), rang 3 pour les noirs
+  const targetRank = toCoords.y;
   
   let maxDistance: number;
   if (isWhitePawn) {
-    // Pour les pions blancs : peuvent aller jusqu'au rang 4 avec mouvement long
-    maxDistance = currentRank < halfBoard ? 4 : 1;
+    // Pour les pions blancs
+    if (currentRank === 0) {
+      // Sur la 1ère rangée, peuvent aller jusqu'à la 4ème rangée (rang 3)
+      maxDistance = Math.min(distance, 4);
+      if (targetRank > 3) {
+        return false; // Ne peut pas dépasser la 4ème rangée
+      }
+    } else {
+      // Sur les autres rangées, mouvement normal de 1 case
+      maxDistance = 1;
+    }
   } else {
-    // Pour les pions noirs : peuvent aller jusqu'au rang 3 avec mouvement long  
-    maxDistance = currentRank > halfBoard ? 4 : 1;
+    // Pour les pions noirs
+    if (currentRank === 7) {
+      // Sur la 8ème rangée, peuvent aller jusqu'à la 5ème rangée (rang 4)
+      maxDistance = Math.min(distance, 4);
+      if (targetRank < 4) {
+        return false; // Ne peut pas dépasser la 5ème rangée
+      }
+    } else {
+      // Sur les autres rangées, mouvement normal de 1 case
+      maxDistance = 1;
+    }
   }
   
   // Vérifier que la distance ne dépasse pas le maximum autorisé
