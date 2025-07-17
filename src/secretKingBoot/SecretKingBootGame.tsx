@@ -55,17 +55,11 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
     // Si c'est une sélection de pièce pour "move_king_and_place"
     if (action.type === 'move_king_and_place' && !action.from && !action.to) {
       setSelectedPieceForKingMove(action.piece!);
-      // Générer les mouvements possibles du roi
-      const kingMoves = getPossibleMoves(gameState, 'move_piece').filter(move => 
-        move.piece && move.piece.includes('King')
+      // Générer les mouvements possibles du roi avec placement de cette pièce
+      const kingMoves = getPossibleMoves(gameState, 'move_king_and_place').filter(move => 
+        move.piece === action.piece
       );
-      // Ajouter la pièce sélectionnée à chaque mouvement
-      const movesWithPiece = kingMoves.map(move => ({
-        ...move,
-        type: 'move_king_and_place' as ActionType,
-        piece: action.piece
-      }));
-      setPossibleMoves(movesWithPiece);
+      setPossibleMoves(kingMoves);
       return;
     }
     

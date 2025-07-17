@@ -1,5 +1,6 @@
 import { SecretKingBootGameState, GameAction, ActionType } from './types';
 import { isChessMoveLegal } from './gameLogic';
+import { isKingInCheck } from './improvedCheckLogic';
 
 /**
  * Actions disponibles pour le joueur selon l'état actuel du jeu
@@ -27,12 +28,19 @@ export function getAvailableActions(gameState: SecretKingBootGameState): ActionT
   // Phase de jeu normal
   if (gameState.gamePhase === 'playing') {
     
-    // RÈGLE CRITIQUE: Si le roi est en échec, seuls les mouvements de pièces sont autorisés
+    // RÈGLE CRITIQUE: Si le roi est en échec, seuls certains mouvements sont autorisés
     if (gameState.gameStatus?.status === 'check' && gameState.gameStatus?.player === gameState.currentPlayer) {
-      // En échec, on ne peut que déplacer des pièces pour sortir d'échec
+      // En échec, on peut déplacer des pièces pour sortir d'échec
       if (hasMovablePieces(gameState)) {
         actions.push('move_piece');
       }
+      
+      // On peut aussi déplacer le roi et placer une pièce (stratégie défensive)
+      // Cette action permet de fuir l'échec tout en renforçant sa position
+      if (hasKingOnBoard(gameState) && hasReservePieces(gameState)) {
+        actions.push('move_king_and_place');
+      }
+      
       return actions; // Pas d'autres actions possibles en échec
     }
     
@@ -590,6 +598,28 @@ function getKingMoveAndPlaceMoves(gameState: SecretKingBootGameState): GameActio
     // Vérifier si le mouvement du roi est légal selon les règles d'échecs
     if (!isChessMoveLegal(gameState, fromPosition, toPosition)) {
       continue; // Passer ce mouvement s'il n'est pas légal
+    }
+    
+    // Si le joueur est en échec, vérifier que ce mouvement résout l'échec
+    if (gameState.gameStatus?.status === 'check' && gameState.gameStatus?.player === player) {
+      // Simuler le mouvement pour voir si cela résout l'échec
+      const tempState = JSON.parse(JSON.stringify(gameState));
+      
+      // Effectuer le mouvement du roi temporairement
+      tempState.board[kingMove.y][kingMove.x] = tempState.board[kingPosition.y][kingPosition.x];
+      tempState.board[kingPosition.y][kingPosition.x] = null;
+      
+      // Mettre à jour la position du roi
+      if (player === 'white') {
+        tempState.whiteKingPosition = `${String.fromCharCode(65 + kingMove.x)}${kingMove.y + 1}`;
+      } else {
+        tempState.blackKingPosition = `${String.fromCharCode(65 + kingMove.x)}${kingMove.y + 1}`;
+      }
+      
+      // Vérifier si le roi est encore en échec après ce mouvement
+      if (isKingInCheck(tempState, player)) {
+        continue; // Ce mouvement ne résout pas l'échec, le passer
+      }
     }
     
     // Pour chaque type de pièce disponible en réserve
