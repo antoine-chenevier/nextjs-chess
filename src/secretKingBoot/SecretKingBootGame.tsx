@@ -22,6 +22,7 @@ import {
 } from './gameAnalysis';
 import { createBot, BotDifficulty, Bot, getDifficultyDescription } from './bot';
 import { validateGameIntegrity } from './gameLogic';
+import pieceComponents from '../pieces';
 
 interface SecretKingBootGameProps {
   onGameEnd?: (winner: 'white' | 'black' | 'draw') => void;
@@ -662,11 +663,18 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
               className={`${styles.square} ${isLight ? styles.light : styles.dark} ${isPossibleMove ? styles.possible : ''} ${isKingInCheck ? styles.inCheck : ''}`}
               onClick={() => onSquareClick(position)}
             >
-              {piece && (
-                <div className={`${styles.piece} ${piece.toLowerCase()}`}>
-                  {getPieceSymbol(piece)}
-                </div>
-              )}
+              {piece && (() => {
+                const PieceComponent = getPieceComponent(piece);
+                return PieceComponent ? (
+                  <div className={styles.piece}>
+                    <PieceComponent size="100%" />
+                  </div>
+                ) : (
+                  <div className={`${styles.piece} ${piece.toLowerCase()}`}>
+                    {getPieceSymbol(piece)}
+                  </div>
+                );
+              })()}
               <div className={styles.squareLabel}>{position}</div>
               {isPossibleMove && (
                 <div className={styles.moveIndicator}>●</div>
@@ -770,6 +778,26 @@ const GameAnalysisDisplay: React.FC<GameAnalysisDisplayProps> = ({ analysis }) =
 };
 
 // Fonctions utilitaires
+
+function getPieceComponent(piece: string) {
+  const pieceMap = {
+    'WhiteKing': 'K',
+    'BlackKing': 'k', 
+    'WhiteQueen': 'Q',
+    'BlackQueen': 'q',
+    'WhiteRook': 'R',
+    'BlackRook': 'r',
+    'WhiteBishop': 'B',
+    'BlackBishop': 'b',
+    'WhiteKnight': 'N',
+    'BlackKnight': 'n',
+    'WhitePawn': 'P',
+    'BlackPawn': 'p'
+  };
+  
+  const pieceKey = pieceMap[piece as keyof typeof pieceMap];
+  return pieceKey ? pieceComponents[pieceKey] : null;
+}
 
 function getPieceSymbol(piece: string): string {
   const symbols = {
