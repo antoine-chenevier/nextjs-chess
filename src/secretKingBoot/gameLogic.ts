@@ -323,12 +323,36 @@ export function isSecretKingBootPawnMoveLegal(
     return false; // Le pion doit avancer
   }
   
-  // Vérifier que le mouvement est en ligne droite (même colonne)
-  if (fromCoords.x !== toCoords.x) {
-    // Pour l'instant, on ne gère que les mouvements en ligne droite
-    // La prise en diagonal pourra être ajoutée plus tard
+  const deltaX = Math.abs(toCoords.x - fromCoords.x);
+  const isForwardMove = deltaX === 0; // Mouvement en ligne droite
+  const isDiagonalCapture = deltaX === 1 && Math.abs(deltaY) === 1; // Capture diagonale
+  
+  // Vérifier le type de mouvement
+  if (isForwardMove) {
+    // Mouvement en ligne droite - vérifier que la case de destination est libre
+    if (gameState.board[toCoords.y][toCoords.x] !== null) {
+      return false; // Case occupée, pas de mouvement possible
+    }
+  } else if (isDiagonalCapture) {
+    // Capture diagonale - vérifier qu'il y a une pièce ennemie à capturer
+    const targetPiece = gameState.board[toCoords.y][toCoords.x];
+    if (!targetPiece) {
+      return false; // Pas de pièce à capturer
+    }
+    
+    const isTargetWhite = targetPiece.includes('White');
+    if (isWhitePawn === isTargetWhite) {
+      return false; // Ne peut pas capturer ses propres pièces
+    }
+    
+    // Capture diagonale valide - retourner true immédiatement
+    return true;
+  } else {
+    // Mouvement invalide (ni en ligne droite ni en diagonale)
     return false;
   }
+  
+  // Pour les mouvements en ligne droite, continuer avec la validation de distance
   
   // Calculer la distance du mouvement
   const distance = Math.abs(deltaY);
