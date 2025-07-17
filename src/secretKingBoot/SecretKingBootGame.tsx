@@ -469,13 +469,35 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
               
               // Gérer les clics sur l'échiquier
               
+              // Vérifier d'abord si on clique sur une pièce du joueur actuel
+              const [file, rank] = [position.charCodeAt(0) - 65, parseInt(position[1]) - 1];
+              const piece = gameState.board[rank]?.[file];
+              const isPieceOfCurrentPlayer = piece && isPieceOwnedByCurrentPlayer(piece, gameState.currentPlayer);
+              
+              // Si on clique sur une pièce du joueur actuel et qu'aucune action n'est sélectionnée,
+              // ou si on n'est pas en mode "move_piece", automatiquement sélectionner "move_piece"
+              if (isPieceOfCurrentPlayer && (!selectedAction || selectedAction !== 'move_piece')) {
+                // Vérifier que "move_piece" est disponible dans les actions possibles
+                const availableActions = getAvailableActions(gameState);
+                if (availableActions.includes('move_piece')) {
+                  setSelectedAction('move_piece');
+                  setSelectedPiecePosition(position);
+                  
+                  // Récupérer les mouvements possibles pour cette pièce spécifique
+                  const allMoves = getPossibleMoves(gameState, 'move_piece');
+                  const pieceMoves = allMoves.filter(move => move.from === position);
+                  setPossibleMoves(pieceMoves);
+                  
+                  // Réinitialiser les autres sélections
+                  setSelectedPieceForKingMove(null);
+                  setSelectedPieceForPlacement(null);
+                  return;
+                }
+              }
+              
               // Si on est en mode "move_piece" et qu'aucune pièce n'est sélectionnée
               if (selectedAction === 'move_piece' && !selectedPiecePosition) {
-                // Vérifier qu'il y a une pièce du joueur actuel à cette position
-                const [file, rank] = [position.charCodeAt(0) - 65, parseInt(position[1]) - 1];
-                const piece = gameState.board[rank]?.[file];
-                
-                if (piece && isPieceOwnedByCurrentPlayer(piece, gameState.currentPlayer)) {
+                if (isPieceOfCurrentPlayer) {
                   // Sélectionner cette pièce et afficher ses mouvements possibles
                   setSelectedPiecePosition(position);
                   
@@ -509,10 +531,7 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
                   // Si aucun mouvement trouvé et qu'on est en mode move_piece avec une pièce sélectionnée,
                   // permettre de sélectionner une autre pièce
                   if (selectedAction === 'move_piece' && selectedPiecePosition) {
-                    const [file, rank] = [position.charCodeAt(0) - 65, parseInt(position[1]) - 1];
-                    const piece = gameState.board[rank]?.[file];
-                    
-                    if (piece && isPieceOwnedByCurrentPlayer(piece, gameState.currentPlayer)) {
+                    if (isPieceOfCurrentPlayer) {
                       // Sélectionner cette nouvelle pièce
                       setSelectedPiecePosition(position);
                       
