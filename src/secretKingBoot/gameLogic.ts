@@ -577,9 +577,9 @@ export function isValidAction(
 
   // RÈGLE CRITIQUE: Si le roi est en échec, seules certaines actions sont autorisées
   if (gameState.gamePhase === 'playing' && gameState.gameStatus?.status === 'check' && gameState.gameStatus?.player === action.player) {
-    // Quand le roi est en échec, seuls les mouvements de pièces sont autorisés
-    // (pas de génération, placement ou échange)
-    if (action.type !== 'move_piece') {
+    // Quand le roi est en échec, seuls les mouvements de pièces et les mouvements du roi avec placement sont autorisés
+    // (pas de génération, placement simple ou échange)
+    if (action.type !== 'move_piece' && action.type !== 'move_king_and_place') {
       return { 
         valid: false, 
         reason: "Votre roi est en échec ! Vous devez impérativement déplacer une pièce pour sortir d'échec (déplacer le roi, bloquer l'attaque, ou capturer l'attaquant)." 
@@ -587,7 +587,7 @@ export function isValidAction(
     }
     
     // Pour les mouvements de pièces en échec, vérifier que le mouvement sort effectivement d'échec
-    // Cette vérification sera faite dans validateMovePiece
+    // Cette vérification sera faite dans validateMovePiece et validateMoveKingAndPlace
   }
 
   switch (action.type) {
@@ -751,10 +751,19 @@ function validateMoveKingAndPlace(
   action: GameAction
 ): { valid: boolean; reason?: string } {
   
+  if (!action.from || !action.to) {
+    return { valid: false, reason: "Position de départ et d'arrivée requises" };
+  }
+  
   // Vérifier que c'est bien le roi qui bouge
   const piece = getPieceAt(gameState.board, action.from!);
   if (!piece || !piece.includes('King')) {
     return { valid: false, reason: "Seul le roi peut effectuer cette action" };
+  }
+  
+  // Vérifier que le roi appartient au joueur
+  if (!isPieceOwnedBy(piece, action.player)) {
+    return { valid: false, reason: "Ce roi ne vous appartient pas" };
   }
   
   // Vérifier qu'il y a une pièce à placer en réserve
@@ -767,6 +776,43 @@ function validateMoveKingAndPlace(
   
   if (!hasPieceInReserve(reserve, action.piece)) {
     return { valid: false, reason: "Pièce non disponible en réserve" };
+  }
+  
+  // Vérifier que le mouvement du roi est légal selon les règles d'échecs
+  if (gameState.gamePhase === 'playing') {
+    const isLegal = isChessMoveLegal(gameState, action.from, action.to);
+    if (!isLegal) {
+      return { valid: false, reason: "Mouvement du roi illégal selon les règles d'échecs" };
+    }
+    
+    // VÉRIFICATION CRITIQUE: Si le roi était en échec, vérifier que le mouvement le sort d'échec
+    if (gameState.gameStatus?.status === 'check' && gameState.gameStatus?.player === action.player) {
+      // Simuler le mouvement pour vérifier qu'il sort d'échec
+      const simulatedState = JSON.parse(JSON.stringify(gameState)) as SecretKingBootGameState;
+      
+      // Appliquer le mouvement du roi temporairement
+      const fromCoords = positionToCoordinates(action.from);
+      const toCoords = positionToCoordinates(action.to);
+      
+      simulatedState.board[toCoords.y][toCoords.x] = simulatedState.board[fromCoords.y][fromCoords.x];
+      simulatedState.board[fromCoords.y][fromCoords.x] = null;
+      
+      // Mettre à jour la position du roi
+      if (action.player === 'white') {
+        simulatedState.whiteKingPosition = action.to as "D1" | "E1";
+      } else {
+        simulatedState.blackKingPosition = action.to as "D8" | "E8";
+      }
+      
+      // Vérifier si le roi est encore en échec après ce mouvement
+      const stillInCheck = isKingInCheck(simulatedState, action.player);
+      if (stillInCheck) {
+        return { 
+          valid: false, 
+          reason: "Ce mouvement ne sort pas le roi d'échec. Vous devez impérativement sortir d'échec." 
+        };
+      }
+    }
   }
   
   return { valid: true };

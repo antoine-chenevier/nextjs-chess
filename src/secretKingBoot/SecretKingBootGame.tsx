@@ -378,20 +378,6 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
         <button onClick={resetGame} className={styles.resetButton}>
           Nouvelle partie
         </button>
-        <div className={styles.testButtons}>
-          <button 
-            onClick={() => setGameState(createTestCheckState())} 
-            className={styles.testButton}
-          >
-            Test Échec
-          </button>
-          <button 
-            onClick={() => setGameState(createTestCheckmateState())} 
-            className={styles.testButton}
-          >
-            Test Mat
-          </button>
-        </div>
         
         {/* Contrôles du bot */}
         <div className={styles.botControls}>

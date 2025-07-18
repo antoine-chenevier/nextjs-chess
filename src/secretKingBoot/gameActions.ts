@@ -18,7 +18,7 @@ export function applyAction(
   // VALIDATION CRITIQUE : Empêcher toute action qui mettrait le roi en échec
   // SEULEMENT pendant la phase de jeu (pas pendant le setup)
   if (gameState.gamePhase === 'playing' && 
-      action.type === 'move_piece') {
+      (action.type === 'move_piece' || action.type === 'move_king_and_place')) {
     
     // Vérifier que le mouvement est légal selon les règles d'échecs
     if (action.from && action.to && !isChessMoveLegal(gameState, action.from, action.to)) {
