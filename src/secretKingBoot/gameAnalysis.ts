@@ -259,8 +259,103 @@ function getPieceMovementMoves(gameState: SecretKingBootGameState): GameAction[]
             });
           }
         }
+        
+        // Ajouter les prises en passant pour les pions
+        if (piece.includes('Pawn')) {
+          const enPassantMoves = getEnPassantMovesForPawn(gameState, { x: file, y: rank }, player);
+          moves.push(...enPassantMoves);
+        }
       }
     }
+  }
+  
+  return moves;
+}
+
+/**
+ * Génère les mouvements de prise en passant pour un pion
+ */
+function getEnPassantMovesForPawn(
+  gameState: SecretKingBootGameState, 
+  pawnPosition: { x: number, y: number }, 
+  player: 'white' | 'black'
+): GameAction[] {
+  const moves: GameAction[] = [];
+  
+  // Vérifier qu'il y a au moins un mouvement dans l'historique
+  if (gameState.moveHistory.length === 0) {
+    return moves;
+  }
+  
+  // Récupérer le dernier mouvement
+  const lastMove = gameState.moveHistory[gameState.moveHistory.length - 1];
+  
+  // La prise en passant n'est possible que si le dernier mouvement était un mouvement de pion
+  if (lastMove.type !== 'move_piece' || !lastMove.piece?.includes('Pawn')) {
+    return moves;
+  }
+  
+  // Vérifier que le dernier mouvement était du joueur adverse
+  if (lastMove.player === player) {
+    return moves;
+  }
+  
+  // Analyser le dernier mouvement pour voir si c'était un bond de pion
+  if (!lastMove.from || !lastMove.to) {
+    return moves;
+  }
+  
+  // Convertir les positions en coordonnées
+  const fromFile = lastMove.from.charCodeAt(0) - 65; // A=0, B=1, etc.
+  const fromRank = parseInt(lastMove.from.charAt(1)) - 1; // 1=0, 2=1, etc.
+  const toFile = lastMove.to.charCodeAt(0) - 65;
+  const toRank = parseInt(lastMove.to.charAt(1)) - 1;
+  
+  // Vérifier que c'était un mouvement vertical (même colonne)
+  if (fromFile !== toFile) {
+    return moves;
+  }
+  
+  // Vérifier que c'était un bond de au moins 2 cases
+  const moveDistance = Math.abs(toRank - fromRank);
+  if (moveDistance < 2) {
+    return moves;
+  }
+  
+  // Vérifier que le pion adverse est maintenant adjacent à notre pion
+  if (Math.abs(toFile - pawnPosition.x) !== 1 || toRank !== pawnPosition.y) {
+    return moves;
+  }
+  
+  // Déterminer la direction de la prise en passant
+  const direction = player === 'white' ? 1 : -1;
+  const captureRank = pawnPosition.y + direction;
+  
+  // Vérifier que la case de capture est valide
+  if (captureRank < 0 || captureRank > 7) {
+    return moves;
+  }
+  
+  // Vérifier que la case de capture est libre
+  if (gameState.board[captureRank][toFile] !== null) {
+    return moves;
+  }
+  
+  // Générer le mouvement de prise en passant
+  const fromPosition = String.fromCharCode(65 + pawnPosition.x) + (pawnPosition.y + 1);
+  const toPosition = String.fromCharCode(65 + toFile) + (captureRank + 1);
+  
+  // Vérifier que le mouvement est légal selon les règles d'échecs (ne met pas le roi en échec)
+  if (isChessMoveLegal(gameState, fromPosition, toPosition)) {
+    moves.push({
+      type: 'move_piece',
+      player,
+      turn: gameState.turn,
+      from: fromPosition,
+      to: toPosition,
+      piece: gameState.board[pawnPosition.y][pawnPosition.x]!,
+      isEnPassant: true // Marquer comme prise en passant
+    });
   }
   
   return moves;
@@ -361,6 +456,9 @@ function generateMovesForPiece(
         }
       }
     }
+    
+    // Prise en passant (nécessite l'état du jeu pour connaître le dernier mouvement)
+    // Cette fonctionnalité sera ajoutée dans getPieceMovementMoves qui a accès à gameState
   }
   
   else if (piece.includes('Knight')) {

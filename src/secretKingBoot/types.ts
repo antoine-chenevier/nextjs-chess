@@ -64,6 +64,7 @@ export interface GameAction {
   exchangeFrom?: string;   // Type de pièce échangée
   exchangeTo?: string;     // Type de pièce obtenue
   cost?: number;           // Coût en pions pour l'échange
+  isEnPassant?: boolean;   // Indique si c'est une prise en passant
 }
 
 // Contraintes de la réserve

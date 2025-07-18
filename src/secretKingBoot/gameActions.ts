@@ -238,6 +238,23 @@ function applyMovePiece(
     addCapturedPieceToReserve(gameState, capturedPiece, action.player);
   }
   
+  // Gérer la prise en passant
+  if (action.isEnPassant) {
+    // En cas de prise en passant, le pion capturé n'est pas sur la case d'arrivée
+    // mais sur la même rangée que le pion qui capture
+    const capturedPawnFile = toFile;
+    const capturedPawnRank = fromRank; // Même rangée que le pion qui capture
+    
+    const capturedPawn = gameState.board[capturedPawnRank][capturedPawnFile];
+    if (capturedPawn && capturedPawn.includes('Pawn')) {
+      // Supprimer le pion capturé
+      gameState.board[capturedPawnRank][capturedPawnFile] = null;
+      
+      // Remettre le pion capturé en réserve
+      addCapturedPieceToReserve(gameState, capturedPawn, action.player);
+    }
+  }
+  
   // Effectuer le déplacement
   gameState.board[toRank][toFile] = piece;
   gameState.board[fromRank][fromFile] = null;
