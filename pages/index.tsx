@@ -18,6 +18,9 @@ export default function SecretKingBootPage() {
           content="Jouez à 'La Botte Secrète du Roi', une variante fascinante d'échecs où vous construisez votre armée pendant la partie !" 
         />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
       </Head>
       
       <main>
@@ -25,7 +28,8 @@ export default function SecretKingBootPage() {
           <header className="page-header">
             <h1>La Botte Secrète du Roi</h1>
             <p className="page-description">
-              Une variante d'échecs révolutionnaire où vous commencez avec une réserve de 4 pions, 1 cavalier, 1 fou et 1 tour !
+              Une variante d'échecs révolutionnaire !
+              Maîtrisez l'art du placement tactique et de la gestion des ressources dans cette expérience d'échecs totalement unique.
             </p>
           </header>
           
@@ -86,6 +90,18 @@ export default function SecretKingBootPage() {
       </main>
       
       <style jsx>{`
+        * {
+          box-sizing: border-box;
+        }
+        
+        body {
+          margin: 0;
+          padding: 0;
+          background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+          min-height: 100vh;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', sans-serif;
+        }
+        
         .page-container {
           max-width: 1400px;
           margin: 0 auto;
@@ -100,23 +116,77 @@ export default function SecretKingBootPage() {
           grid-column: 1 / -1;
           text-align: center;
           margin-bottom: 30px;
-          padding: 30px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          border-radius: 15px;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+          padding: 40px 30px;
+          background: linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+          color: #ffffff;
+          border-radius: 20px;
+          box-shadow: 
+            0 20px 40px rgba(0,0,0,0.3),
+            inset 0 1px 0 rgba(255,255,255,0.1);
+          position: relative;
+          overflow: hidden;
+        }
+        
+        .page-header::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: 
+            repeating-conic-gradient(
+              from 0deg at 0% 0%,
+              transparent 0deg 45deg,
+              rgba(255,255,255,0.02) 45deg 90deg
+            );
+          background-size: 40px 40px;
+          z-index: 1;
+        }
+        
+        .page-header::after {
+          content: '♔ ♕ ♖ ♗ ♘ ♙';
+          position: absolute;
+          top: 10px;
+          left: 50%;
+          transform: translateX(-50%);
+          font-size: 1.2rem;
+          opacity: 0.15;
+          letter-spacing: 10px;
+          z-index: 1;
+        }
+        
+        .page-header > * {
+          position: relative;
+          z-index: 2;
         }
         
         .page-header h1 {
-          margin: 0 0 15px 0;
-          font-size: 2.5rem;
+          margin: 0 0 20px 0;
+          font-size: 3rem;
           font-weight: 700;
+          font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+          text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+          letter-spacing: 1px;
+          background: linear-gradient(145deg, #ffffff, #e8e8e8);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
         }
         
         .page-description {
           margin: 0;
-          font-size: 1.2rem;
-          opacity: 0.9;
+          font-size: 1.3rem;
+          font-weight: 300;
+          line-height: 1.6;
+          max-width: 800px;
+          margin: 0 auto;
+          text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        .page-description strong {
+          font-weight: 600;
+          color: #ffd700;
         }
         
         .game-section {
@@ -125,49 +195,73 @@ export default function SecretKingBootPage() {
         
         .rules-section {
           grid-column: 2;
-          background: white;
-          padding: 25px;
-          border-radius: 10px;
-          box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+          background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+          padding: 30px;
+          border-radius: 15px;
+          box-shadow: 
+            0 15px 35px rgba(0,0,0,0.1),
+            0 5px 15px rgba(0,0,0,0.05);
           height: fit-content;
           position: sticky;
           top: 20px;
+          border: 1px solid rgba(255,255,255,0.2);
         }
         
         .rules-section h2 {
-          margin: 0 0 20px 0;
-          color: #333;
-          font-size: 1.5rem;
-          border-bottom: 3px solid #667eea;
-          padding-bottom: 10px;
+          margin: 0 0 25px 0;
+          color: #1a1a2e;
+          font-size: 1.8rem;
+          font-weight: 600;
+          border-bottom: 3px solid #16213e;
+          padding-bottom: 12px;
+          font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+          text-align: center;
         }
         
         .rules-content section {
-          margin-bottom: 25px;
+          margin-bottom: 30px;
+          background: rgba(255,255,255,0.7);
+          padding: 20px;
+          border-radius: 10px;
+          border-left: 4px solid #16213e;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .rules-content section:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(0,0,0,0.1);
         }
         
         .rules-content h3 {
-          margin: 0 0 10px 0;
-          color: #555;
-          font-size: 1.1rem;
+          margin: 0 0 15px 0;
+          color: #1a1a2e;
+          font-size: 1.2rem;
+          font-weight: 600;
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 10px;
         }
         
         .rules-content ul {
           margin: 0;
-          padding-left: 20px;
-          line-height: 1.6;
+          padding-left: 25px;
+          line-height: 1.7;
         }
         
         .rules-content li {
-          margin-bottom: 5px;
-          color: #666;
+          margin-bottom: 8px;
+          color: #555;
+          position: relative;
+        }
+        
+        .rules-content li::marker {
+          color: #16213e;
+          font-weight: bold;
         }
         
         .rules-content strong {
-          color: #333;
+          color: #1a1a2e;
+          font-weight: 600;
         }
         
         @media (max-width: 1200px) {
@@ -188,19 +282,35 @@ export default function SecretKingBootPage() {
           }
           
           .page-header {
-            padding: 20px;
+            padding: 30px 20px;
+            border-radius: 15px;
           }
           
           .page-header h1 {
-            font-size: 2rem;
+            font-size: 2.2rem;
+            margin-bottom: 15px;
           }
           
           .page-description {
+            font-size: 1.1rem;
+          }
+          
+          .page-header::after {
             font-size: 1rem;
+            letter-spacing: 6px;
           }
           
           .rules-section {
-            padding: 20px;
+            padding: 25px 20px;
+          }
+          
+          .rules-section h2 {
+            font-size: 1.5rem;
+          }
+          
+          .rules-content section {
+            padding: 15px;
+            margin-bottom: 20px;
           }
         }
       `}</style>
