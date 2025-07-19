@@ -25,6 +25,8 @@ import {
   Action as ChessAction
 } from '../logic/index';
 
+import { isKingInCheck as improvedIsKingInCheck } from './improvedCheckLogic';
+
 /**
  * Crée un état initial pour une partie "La botte secrète du roi"
  */
@@ -548,9 +550,60 @@ export function isChessMoveLegal(
       return isSecretKingBootPawnMoveLegal(gameState, from, to, piece);
     }
     
+    // Calculer les coordonnées de destination une seule fois
+    const toCoords = positionToCoordinates(to);
+    
+    // RÈGLES SPÉCIALES POUR LE ROI : vérifier qu'il ne se met pas en échec
+    if (piece.includes('King')) {
+      // Vérifier d'abord que le mouvement respecte les règles de base du roi (une case)
+      const deltaX = toCoords.x - fromCoords.x;
+      const deltaY = toCoords.y - fromCoords.y;
+      
+      if (Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1) {
+        console.warn(`Mouvement du roi ${from} -> ${to} rejeté : distance trop grande`);
+        return false;
+      }
+      
+      if (deltaX === 0 && deltaY === 0) {
+        console.warn(`Mouvement du roi ${from} -> ${to} rejeté : même case`);
+        return false;
+      }
+      
+      // Vérifier qu'on ne capture pas sa propre pièce
+      const targetPiece = gameState.board[toCoords.y][toCoords.x];
+      const player = piece.includes('White') ? 'white' : 'black';
+      if (targetPiece && targetPiece.includes(player === 'white' ? 'White' : 'Black')) {
+        console.warn(`Mouvement du roi ${from} -> ${to} rejeté : case occupée par une pièce alliée`);
+        return false;
+      }
+      
+      // Créer un état temporaire pour simuler le mouvement
+      const tempState = JSON.parse(JSON.stringify(gameState)) as SecretKingBootGameState;
+      
+      // Effectuer le mouvement temporairement
+      tempState.board[toCoords.y][toCoords.x] = piece;
+      tempState.board[fromCoords.y][fromCoords.x] = null;
+      
+      // Mettre à jour la position du roi
+      if (player === 'white') {
+        tempState.whiteKingPosition = to as "D1" | "E1";
+      } else {
+        tempState.blackKingPosition = to as "D8" | "E8";
+      }
+      
+      // Vérifier si le roi serait en échec après ce mouvement
+      const wouldBeInCheck = improvedIsKingInCheck(tempState, player);
+      if (wouldBeInCheck) {
+        console.warn(`Mouvement du roi ${from} -> ${to} rejeté : case attaquée`);
+        return false;
+      }
+      
+      // Si toutes les vérifications passent, le mouvement est légal
+      return true;
+    }
+    
     // Pour les autres pièces, utiliser la logique d'échecs classique
     const chessBoard = convertToChessBoard(gameState);
-    const toCoords = positionToCoordinates(to);
     
     // Adapter les coordonnées pour le système d'échecs (inversion Y)
     const fromChess = { x: fromCoords.x, y: 7 - fromCoords.y };
