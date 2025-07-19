@@ -3,12 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS=--openssl-legacy-provider next dev",
+    "dev": "cross-env NODE_OPTIONS=--openssl-legacy-provider next dev",
     "build": "cross-env NODE_OPTIONS=--openssl-legacy-provider next build",
     "start": "next start",
     "perf-play": "ts-node -O '{\"module\":\"commonjs\"}' perf/random_plays",
     "perf-depth": "ts-node -O '{\"module\":\"commonjs\"}' perf/deep_check",
-    "test": "env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register test/**/*.ts"
+    "test": "cross-env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register test/**/*.ts"
   },
   "devDependencies": {
     "@types/chai": "4.2.14",
