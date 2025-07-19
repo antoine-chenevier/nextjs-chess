@@ -366,18 +366,20 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
   return (
     <div className={styles.secretKingBootGame}>
       <div className={styles.gameHeader}>
-        <h2>La Botte Secrète du Roi</h2>
-        <div className={styles.gameInfo}>
-          <div>Joueur: {gameState.currentPlayer === 'white' ? 'Blanc' : 'Noir'}</div>
-          <div>Tour: {gameState.turn}</div>
-          <div>Phase: {gameState.gamePhase === 'setup' ? 'Placement' : 'Jeu'}</div>
-          {getGameStatusDisplay() && (
-            <div className={styles.gameStatus}>{getGameStatusDisplay()}</div>
-          )}
+        <div className={styles.gameHeaderTop}>
+          <h2>La Botte Secrète du Roi</h2>
+          <div className={styles.gameInfo}>
+            <div>Joueur: {gameState.currentPlayer === 'white' ? 'Blanc' : 'Noir'}</div>
+            <div>Tour: {gameState.turn}</div>
+            <div>Phase: {gameState.gamePhase === 'setup' ? 'Placement' : 'Jeu'}</div>
+            {getGameStatusDisplay() && (
+              <div className={styles.gameStatus}>{getGameStatusDisplay()}</div>
+            )}
+          </div>
+          <button onClick={resetGame} className={styles.resetButton}>
+            Nouvelle partie
+          </button>
         </div>
-        <button onClick={resetGame} className={styles.resetButton}>
-          Nouvelle partie
-        </button>
         
         {/* Contrôles du bot */}
         <div className={styles.botControls}>
