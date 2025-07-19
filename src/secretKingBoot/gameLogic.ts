@@ -334,19 +334,20 @@ export function isSecretKingBootPawnMoveLegal(
       return false; // Case occupée, pas de mouvement possible
     }
   } else if (isDiagonalCapture) {
-    // Capture diagonale - vérifier qu'il y a une pièce ennemie à capturer
+    // Capture diagonale - vérifier qu'il y a une pièce ennemie à capturer OU que c'est une prise en passant
     const targetPiece = gameState.board[toCoords.y][toCoords.x];
-    if (!targetPiece) {
-      return false; // Pas de pièce à capturer
-    }
     
-    const isTargetWhite = targetPiece.includes('White');
-    if (isWhitePawn === isTargetWhite) {
-      return false; // Ne peut pas capturer ses propres pièces
+    if (targetPiece) {
+      // Capture normale - vérifier que c'est une pièce ennemie
+      const isTargetWhite = targetPiece.includes('White');
+      if (isWhitePawn === isTargetWhite) {
+        return false; // Ne peut pas capturer ses propres pièces
+      }
+      return true; // Capture diagonale valide
+    } else {
+      // Case vide - vérifier si c'est une prise en passant valide
+      return isValidEnPassantCapture(gameState, from, to, isWhitePawn);
     }
-    
-    // Capture diagonale valide - retourner true immédiatement
-    return true;
   } else {
     // Mouvement invalide (ni en ligne droite ni en diagonale)
     return false;
@@ -422,6 +423,77 @@ export function isSecretKingBootPawnMoveLegal(
   }
   
   return true;
+}
+
+/**
+ * Vérifie si une capture en passant est valide
+ */
+export function isValidEnPassantCapture(
+  gameState: SecretKingBootGameState,
+  from: string,
+  to: string,
+  isWhitePawn: boolean
+): boolean {
+  // Vérifier qu'il y a au moins un mouvement dans l'historique
+  if (gameState.moveHistory.length === 0) {
+    return false;
+  }
+  
+  // Récupérer le dernier mouvement
+  const lastMove = gameState.moveHistory[gameState.moveHistory.length - 1];
+  
+  // La prise en passant n'est possible que si le dernier mouvement était un mouvement de pion
+  if (lastMove.type !== 'move_piece' || !lastMove.piece?.includes('Pawn')) {
+    return false;
+  }
+  
+  // Vérifier que le dernier mouvement était du joueur adverse
+  const currentPlayer = isWhitePawn ? 'white' : 'black';
+  if (lastMove.player === currentPlayer) {
+    return false;
+  }
+  
+  // Analyser le dernier mouvement pour voir si c'était un bond de pion de 2 cases
+  if (!lastMove.from || !lastMove.to) {
+    return false;
+  }
+  
+  // Convertir les positions en coordonnées
+  const lastFromCoords = positionToCoordinates(lastMove.from);
+  const lastToCoords = positionToCoordinates(lastMove.to);
+  const fromCoords = positionToCoordinates(from);
+  const toCoords = positionToCoordinates(to);
+  
+  // Vérifier que c'était un mouvement vertical (même colonne) de 2 cases
+  if (lastFromCoords.x !== lastToCoords.x) {
+    return false; // Pas un mouvement vertical
+  }
+  
+  const moveDistance = Math.abs(lastToCoords.y - lastFromCoords.y);
+  if (moveDistance !== 2) {
+    return false; // Pas un bond de 2 cases
+  }
+  
+  // Vérifier que le pion adverse est maintenant adjacent à notre pion (même rangée)
+  if (Math.abs(lastToCoords.x - fromCoords.x) !== 1 || lastToCoords.y !== fromCoords.y) {
+    return false; // Pas adjacent ou pas sur la même rangée
+  }
+  
+  // Vérifier que notre mouvement va sur la case que le pion adverse a "traversée"
+  const expectedCaptureX = lastToCoords.x; // Même colonne que le pion adverse
+  const expectedCaptureY = lastFromCoords.y + (isWhitePawn ? 1 : -1); // Case traversée
+  
+  if (toCoords.x !== expectedCaptureX || toCoords.y !== expectedCaptureY) {
+    return false; // Ne va pas sur la bonne case
+  }
+  
+  // Vérifier que le pion adverse est toujours à sa position actuelle
+  const enemyPawn = gameState.board[lastToCoords.y][lastToCoords.x];
+  if (!enemyPawn || !enemyPawn.includes('Pawn')) {
+    return false; // Le pion adverse n'est plus là
+  }
+  
+  return true; // Prise en passant valide
 }
 
 /**

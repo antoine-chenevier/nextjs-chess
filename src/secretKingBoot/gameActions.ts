@@ -5,7 +5,7 @@ import {
   RESERVE_LIMITS,
   EXCHANGE_COSTS
 } from './types';
-import { getGameStatus, updateGameStateWithChessLogic, isChessMoveLegal, validateGameIntegrity } from './gameLogic';
+import { getGameStatus, updateGameStateWithChessLogic, isChessMoveLegal, validateGameIntegrity, isValidEnPassantCapture } from './gameLogic';
 
 /**
  * Applique une action validée sur l'état du jeu
@@ -209,6 +209,21 @@ function applyMovePiece(
   // Récupérer la pièce
   const piece = gameState.board[fromRank][fromFile];
   
+  // Détecter automatiquement la prise en passant si elle n'est pas déjà marquée
+  if (!action.isEnPassant && piece && piece.includes('Pawn')) {
+    // Vérifier si c'est un mouvement diagonal vers une case vide (signe de prise en passant)
+    const isDiagonal = Math.abs(toFile - fromFile) === 1 && Math.abs(toRank - fromRank) === 1;
+    const isEmptyDestination = gameState.board[toRank][toFile] === null;
+    
+    if (isDiagonal && isEmptyDestination) {
+      // C'est probablement une prise en passant, vérifier qu'elle est valide
+      const isWhitePawn = piece.includes('White');
+      if (isValidEnPassantCapture(gameState, action.from!, action.to!, isWhitePawn)) {
+        action.isEnPassant = true;
+      }
+    }
+  }
+  
   // Si c'est un roi, mettre à jour sa position stockée
   if (piece && piece.includes('King')) {
     if (piece === 'WhiteKing') {
@@ -241,17 +256,25 @@ function applyMovePiece(
   // Gérer la prise en passant
   if (action.isEnPassant) {
     // En cas de prise en passant, le pion capturé n'est pas sur la case d'arrivée
-    // mais sur la même rangée que le pion qui capture
+    // mais sur la même colonne que la case d'arrivée et sur la même rangée que le pion qui capture (avant le mouvement)
     const capturedPawnFile = toFile;
-    const capturedPawnRank = fromRank; // Même rangée que le pion qui capture
+    const capturedPawnRank = fromRank; // Même rangée que le pion qui capture AVANT le mouvement
     
     const capturedPawn = gameState.board[capturedPawnRank][capturedPawnFile];
     if (capturedPawn && capturedPawn.includes('Pawn')) {
+      // VÉRIFICATION CRITIQUE : Un roi ne doit JAMAIS être capturé
+      if (capturedPawn.includes('King')) {
+        console.error('🚨 ERREUR CRITIQUE: Tentative de capture du roi en prise en passant!');
+        return gameState;
+      }
+      
       // Supprimer le pion capturé
       gameState.board[capturedPawnRank][capturedPawnFile] = null;
       
       // Remettre le pion capturé en réserve
       addCapturedPieceToReserve(gameState, capturedPawn, action.player);
+    } else {
+      console.warn(`Prise en passant: aucun pion trouvé à la position ${String.fromCharCode(65 + capturedPawnFile)}${capturedPawnRank + 1}`);
     }
   }
   
