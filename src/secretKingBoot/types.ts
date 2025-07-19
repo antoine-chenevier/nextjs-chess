@@ -37,6 +37,9 @@ export interface SecretKingBootGameState {
   // État de l'échiquier (hérité du jeu classique mais adapté)
   board: (string | null)[][]; // 8x8, null = case vide
   
+  // Prise en passant - colonne où un pion vient de faire un bond de 2 ou 3 cases
+  passant?: number; // Colonne (0-7) où la prise en passant est possible
+  
   // Intégration avec la logique d'échecs classique
   chessBoard?: Board; // Représentation compatible avec la logique d'échecs
   chessGameState?: ChessGameState;

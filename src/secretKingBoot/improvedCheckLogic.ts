@@ -200,6 +200,127 @@ export function isKingInCheck(gameState: SecretKingBootGameState, player: 'white
 }
 
 /**
+ * Obtient la position du pion capturé lors d'une prise en passant
+ */
+export function getCapturedPawnPosition(
+  gameState: SecretKingBootGameState,
+  fromX: number,
+  fromY: number,
+  toX: number,
+  toY: number,
+  player: 'white' | 'black'
+): { x: number; y: number } | null {
+  if (!isEnPassantMove(gameState, fromX, fromY, toX, toY, gameState.board[fromY][fromX] || '', player)) {
+    return null;
+  }
+  
+  // Le pion capturé est sur la même rangée que notre pion, dans la colonne cible
+  return { x: toX, y: fromY };
+}
+
+/**
+ * Effectue un mouvement sur le plateau et met à jour l'état passant
+ * Similaire à makeMove dans index.ts mais adapté pour Secret King Boot
+ */
+export function makeSecretKingBootMove(
+  gameState: SecretKingBootGameState,
+  fromX: number,
+  fromY: number,
+  toX: number,
+  toY: number
+): SecretKingBootGameState {
+  // Créer une copie de l'état
+  const newBoard = gameState.board.map(row => [...row]);
+  const piece = newBoard[fromY][fromX];
+  
+  if (!piece) {
+    throw new Error('Aucune pièce à la position de départ');
+  }
+  
+  const player = isPieceOwnedBy(piece, 'white') ? 'white' : 'black';
+  
+  // Effectuer le mouvement de base
+  newBoard[toY][toX] = piece;
+  newBoard[fromY][fromX] = null;
+  
+  // Gérer la prise en passant (même logique que dans index.ts)
+  if (piece.includes('Pawn') && gameState.passant === toX && gameState.passant !== fromX) {
+    // Supprimer le pion capturé sur la même rangée que notre pion
+    newBoard[fromY][toX] = null;
+  }
+  
+  // Calculer le nouveau champ passant pour le prochain tour
+  const newPassant = calculateEnPassantTarget(fromX, fromY, toX, toY, piece, player);
+  
+  return {
+    ...gameState,
+    board: newBoard,
+    passant: newPassant,
+    currentPlayer: player === 'white' ? 'black' : 'white'
+  };
+}
+
+/**
+ * Calcule si un mouvement de pion crée une opportunité de prise en passant
+ * Adapté de la logique dans index.ts : const passant = (fromRank === 1 && toRank === 3) ? dest.x : undefined;
+ */
+export function calculateEnPassantTarget(
+  fromX: number,
+  fromY: number,
+  toX: number,
+  toY: number,
+  piece: string,
+  player: 'white' | 'black'
+): number | undefined {
+  if (!piece.includes('Pawn')) {
+    return undefined;
+  }
+  
+  // Calculer le rang relatif (rang 1 = rang de départ pour les pions)
+  const fromRank = player === 'white' ? fromY : (7 - fromY);
+  const toRank = player === 'white' ? toY : (7 - toY);
+  
+  // Prise en passant classique : bond de 2 cases (rang 1 -> rang 3)
+  if (fromRank === 1 && toRank === 3) {
+    return toX;
+  }
+  
+  // Prise en passant Secret King Boot : bond de 3 cases (rang 1 -> rang 4)
+  // Note: Dans Secret King Boot, les pions peuvent faire un bond de 3 cases depuis leur position de départ
+  if (fromRank === 1 && toRank === 4) {
+    return toX;
+  }
+  
+  return undefined;
+}
+
+/**
+ * Vérifie si un mouvement est une prise en passant
+ * Utilise la même logique simple que dans index.ts
+ */
+export function isEnPassantMove(
+  gameState: SecretKingBootGameState,
+  fromX: number,
+  fromY: number,
+  toX: number,
+  toY: number,
+  piece: string,
+  player: 'white' | 'black'
+): boolean {
+  // Seuls les pions peuvent faire une prise en passant
+  if (!piece.includes('Pawn')) {
+    return false;
+  }
+  
+  // Utiliser la même condition que dans index.ts : board.passant === dest.x && board.passant !== from.x
+  if (gameState.passant === undefined) {
+    return false;
+  }
+  
+  return gameState.passant === toX && gameState.passant !== fromX;
+}
+
+/**
  * Simule un mouvement et vérifie si le roi reste en sécurité
  */
 export function wouldMoveLeaveKingInCheck(
@@ -217,6 +338,13 @@ export function wouldMoveLeaveKingInCheck(
   const piece = tempBoard[fromY][fromX];
   tempBoard[toY][toX] = piece;
   tempBoard[fromY][fromX] = null;
+  
+  // Vérifier si c'est une prise en passant et supprimer le pion capturé
+  // Utiliser la même logique que dans index.ts : board.passant === dest.x && board.passant !== from.x
+  if (piece && piece.includes('Pawn') && gameState.passant === toX && gameState.passant !== fromX) {
+    // Le pion capturé est sur la même rangée que le pion qui bouge (fromY)
+    tempBoard[fromY][toX] = null;
+  }
   
   // Créer un état temporaire
   const tempState: SecretKingBootGameState = {
@@ -241,7 +369,7 @@ export function generateLegalMovesForPiece(
   const legalMoves: { x: number; y: number }[] = [];
   
   // Générer tous les mouvements possibles selon le type de pièce
-  const possibleMoves = generatePossibleMovesForPiece(piece, pieceX, pieceY, gameState.board, player);
+  const possibleMoves = generatePossibleMovesForPiece(piece, pieceX, pieceY, gameState.board, player, gameState);
   
   // Filtrer les mouvements qui laisseraient le roi en échec
   for (const move of possibleMoves) {
@@ -261,7 +389,8 @@ function generatePossibleMovesForPiece(
   fromX: number,
   fromY: number,
   board: (string | null)[][],
-  player: 'white' | 'black'
+  player: 'white' | 'black',
+  gameState?: SecretKingBootGameState
 ): { x: number; y: number }[] {
   const moves: { x: number; y: number }[] = [];
   
@@ -311,7 +440,7 @@ function generatePossibleMovesForPiece(
     }
   } else if (piece.includes('Pawn')) {
     // Pion : logique spéciale
-    moves.push(...generatePawnMoves(fromX, fromY, board, player));
+    moves.push(...generatePawnMoves(fromX, fromY, board, player, gameState));
   }
   
   return moves;
@@ -364,13 +493,56 @@ function generateLinearMoves(
 }
 
 /**
+ * Génère les mouvements de prise en passant pour un pion
+ * Utilise la même logique simple que dans index.ts
+ */
+function generateEnPassantMoves(
+  fromX: number,
+  fromY: number,
+  gameState: SecretKingBootGameState,
+  player: 'white' | 'black'
+): { x: number; y: number }[] {
+  const moves: { x: number; y: number }[] = [];
+  
+  // Si aucune prise en passant n'est possible, retourner vide
+  if (gameState.passant === undefined) {
+    return moves;
+  }
+  
+  const direction = player === 'white' ? 1 : -1;
+  
+  // Vérifier les captures diagonales pour prise en passant
+  for (const dx of [-1, 1]) {
+    const captureX = fromX + dx;
+    const captureY = fromY + direction;
+    
+    if (isValidPosition(captureX, captureY)) {
+      // Condition de prise en passant : board.passant === dest.x && board.passant !== from.x
+      if (gameState.passant === captureX && gameState.passant !== fromX) {
+        // Vérifier que la case cible est vide (condition pour prise en passant)
+        if (gameState.board[captureY][captureX] === null) {
+          // Vérifier qu'il y a bien un pion adverse sur notre rangée à capturer
+          const enemyPawn = gameState.board[fromY][captureX];
+          if (enemyPawn && enemyPawn.includes('Pawn') && !isPieceOwnedBy(enemyPawn, player)) {
+            moves.push({ x: captureX, y: captureY });
+          }
+        }
+      }
+    }
+  }
+  
+  return moves;
+}
+
+/**
  * Génère les mouvements de pion selon les règles de Secret King Boot
  */
 function generatePawnMoves(
   fromX: number,
   fromY: number,
   board: (string | null)[][],
-  player: 'white' | 'black'
+  player: 'white' | 'black',
+  gameState?: SecretKingBootGameState
 ): { x: number; y: number }[] {
   const moves: { x: number; y: number }[] = [];
   const direction = player === 'white' ? 1 : -1;
@@ -407,6 +579,12 @@ function generatePawnMoves(
         moves.push({ x: captureX, y: captureY });
       }
     }
+  }
+  
+  // Ajouter les prises en passant si l'état du jeu est disponible
+  if (gameState) {
+    const enPassantMoves = generateEnPassantMoves(fromX, fromY, gameState, player);
+    moves.push(...enPassantMoves);
   }
   
   return moves;
