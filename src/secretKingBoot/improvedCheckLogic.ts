@@ -517,15 +517,13 @@ function generateEnPassantMoves(
     const captureY = fromY + direction;
     
     if (isValidPosition(captureX, captureY)) {
-      // Condition de prise en passant : board.passant === dest.x && board.passant !== from.x
-      if (gameState.passant === captureX && gameState.passant !== fromX) {
-        // Vérifier que la case cible est vide (condition pour prise en passant)
-        if (gameState.board[captureY][captureX] === null) {
-          // Vérifier qu'il y a bien un pion adverse sur notre rangée à capturer
-          const enemyPawn = gameState.board[fromY][captureX];
-          if (enemyPawn && enemyPawn.includes('Pawn') && !isPieceOwnedBy(enemyPawn, player)) {
-            moves.push({ x: captureX, y: captureY });
-          }
+      // Condition principale : board.passant === dest.x (même logique que index.ts)
+      if (gameState.passant === captureX) {
+        // Vérifier qu'il y a bien un pion adverse sur notre rangée à la position passant
+        // (même logique que dans index.ts : board.pieces[dest.x + orig.y * 8])
+        const enemyPawn = gameState.board[fromY][gameState.passant];
+        if (enemyPawn && enemyPawn.includes('Pawn') && !isPieceOwnedBy(enemyPawn, player)) {
+          moves.push({ x: captureX, y: captureY });
         }
       }
     }
