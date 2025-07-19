@@ -364,7 +364,7 @@ function generateLinearMoves(
 }
 
 /**
- * Génère les mouvements de pion
+ * Génère les mouvements de pion selon les règles de Secret King Boot
  */
 function generatePawnMoves(
   fromX: number,
@@ -375,22 +375,28 @@ function generatePawnMoves(
   const moves: { x: number; y: number }[] = [];
   const direction = player === 'white' ? 1 : -1;
   
-  // Mouvement vers l'avant
-  const newY = fromY + direction;
-  if (isValidPosition(fromX, newY) && !board[newY][fromX]) {
+  // Règles spéciales Secret King Boot pour les pions
+  // Pions blancs sur rang 0 peuvent aller jusqu'au rang 3
+  // Pions noirs sur rang 7 peuvent aller jusqu'au rang 4
+  const isOnStartingRank = (player === 'white' && fromY === 0) || (player === 'black' && fromY === 7);
+  const maxDistance = isOnStartingRank ? (player === 'white' ? 3 : 3) : 1; // Jusqu'à 3 cases depuis le rang de départ
+  
+  // Mouvement vers l'avant (peut être multiple pour Secret King Boot)
+  for (let distance = 1; distance <= maxDistance; distance++) {
+    const newY = fromY + (direction * distance);
+    
+    if (!isValidPosition(fromX, newY)) break;
+    
+    // Vérifier que la case est libre
+    if (board[newY][fromX]) break; // Chemin bloqué, arrêter
+    
     moves.push({ x: fromX, y: newY });
     
-    // Double mouvement depuis la position initiale
-    const startingRank = player === 'white' ? 1 : 6;
-    if (fromY === startingRank) {
-      const doubleNewY = fromY + 2 * direction;
-      if (isValidPosition(fromX, doubleNewY) && !board[doubleNewY][fromX]) {
-        moves.push({ x: fromX, y: doubleNewY });
-      }
-    }
+    // Si pas sur le rang de départ, ne faire qu'un pas
+    if (!isOnStartingRank) break;
   }
   
-  // Captures en diagonale
+  // Captures en diagonale (règle standard)
   for (const dx of [-1, 1]) {
     const captureX = fromX + dx;
     const captureY = fromY + direction;

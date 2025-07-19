@@ -25,7 +25,7 @@ import {
   Action as ChessAction
 } from '../logic/index';
 
-import { isKingInCheck as improvedIsKingInCheck } from './improvedCheckLogic';
+import { isKingInCheck as improvedIsKingInCheck, wouldMoveLeaveKingInCheck } from './improvedCheckLogic';
 
 /**
  * Crée un état initial pour une partie "La botte secrète du roi"
@@ -601,18 +601,29 @@ export function isChessMoveLegal(
     
     const legalMoves = chessGetAllLegalMoves(chessBoard, chessPiece.group);
     
-    const isLegal = legalMoves.some(move => 
+    const isBasicMoveLegal = legalMoves.some(move => 
       move.from.x === fromChess.x && 
       move.from.y === fromChess.y &&
       move.dest.x === toChess.x && 
       move.dest.y === toChess.y
     );
     
-    if (!isLegal) {
-      console.warn(`Mouvement illégal: ${from} -> ${to} (groupe ${chessPiece.group})`);
+    if (!isBasicMoveLegal) {
+      console.warn(`Mouvement de base illégal: ${from} -> ${to} (groupe ${chessPiece.group})`);
+      return false;
     }
     
-    return isLegal;
+    // VÉRIFICATION UNIVERSELLE D'ÉCHEC: Utiliser la fonction spécialisée
+    const player = piece.includes('White') ? 'white' : 'black';
+    const wouldBeInCheck = wouldMoveLeaveKingInCheck(gameState, fromCoords.x, fromCoords.y, toCoords.x, toCoords.y, player);
+    if (wouldBeInCheck) {
+      console.warn(`Mouvement ${from} -> ${to} rejeté : mettrait le roi en échec`);
+      return false;
+    } else {
+      console.log(`Mouvement ${from} -> ${to} validé : ne met pas le roi en échec`);
+    }
+    
+    return true;
   } catch (error) {
     console.error('Erreur dans isChessMoveLegal:', error);
     return false;
@@ -807,35 +818,38 @@ function validateMovePiece(
       return { valid: false, reason: "Mouvement illégal selon les règles d'échecs" };
     }
     
-    // VÉRIFICATION CRITIQUE: Si le roi était en échec, vérifier que le mouvement le sort d'échec
-    if (gameState.gameStatus?.status === 'check' && gameState.gameStatus?.player === action.player) {
-      // Simuler le mouvement pour vérifier qu'il sort d'échec
-      const simulatedState = JSON.parse(JSON.stringify(gameState)) as SecretKingBootGameState;
-      
-      // Appliquer le mouvement temporairement
-      const fromCoords = positionToCoordinates(action.from);
-      const toCoords = positionToCoordinates(action.to);
-      
-      simulatedState.board[toCoords.y][toCoords.x] = simulatedState.board[fromCoords.y][fromCoords.x];
-      simulatedState.board[fromCoords.y][fromCoords.x] = null;
-      
-      // Mettre à jour la position du roi si c'est lui qui bouge
-      if (piece.includes('King')) {
-        if (action.player === 'white') {
-          simulatedState.whiteKingPosition = action.to as "D1" | "E1";
-        } else {
-          simulatedState.blackKingPosition = action.to as "D8" | "E8";
-        }
+    // VÉRIFICATION UNIVERSELLE: Aucun mouvement ne doit laisser son propre roi en échec
+    // Simuler le mouvement pour vérifier qu'il ne met pas ou ne laisse pas le roi en échec
+    const simulatedState = JSON.parse(JSON.stringify(gameState)) as SecretKingBootGameState;
+    
+    // Appliquer le mouvement temporairement
+    const fromCoords = positionToCoordinates(action.from);
+    const toCoords = positionToCoordinates(action.to);
+    
+    simulatedState.board[toCoords.y][toCoords.x] = simulatedState.board[fromCoords.y][fromCoords.x];
+    simulatedState.board[fromCoords.y][fromCoords.x] = null;
+    
+    // Mettre à jour la position du roi si c'est lui qui bouge
+    if (piece.includes('King')) {
+      if (action.player === 'white') {
+        simulatedState.whiteKingPosition = action.to as "D1" | "E1";
+      } else {
+        simulatedState.blackKingPosition = action.to as "D8" | "E8";
       }
+    }
+    
+    // Vérifier si le roi serait en échec après ce mouvement
+    const wouldBeInCheck = isKingInCheck(simulatedState, action.player);
+    if (wouldBeInCheck) {
+      // Message différent selon si le roi était déjà en échec ou non
+      const reason = gameState.gameStatus?.status === 'check' && gameState.gameStatus?.player === action.player
+        ? "Ce mouvement ne sort pas le roi d'échec. Vous devez impérativement sortir d'échec."
+        : "Ce mouvement mettrait votre roi en échec, ce qui est interdit.";
       
-      // Vérifier si le roi est encore en échec après ce mouvement
-      const stillInCheck = isKingInCheck(simulatedState, action.player);
-      if (stillInCheck) {
-        return { 
-          valid: false, 
-          reason: "Ce mouvement ne sort pas le roi d'échec. Vous devez impérativement sortir d'échec." 
-        };
-      }
+      return { 
+        valid: false, 
+        reason
+      };
     }
   }
   
@@ -885,33 +899,36 @@ function validateMoveKingAndPlace(
       return { valid: false, reason: "Mouvement du roi illégal selon les règles d'échecs" };
     }
     
-    // VÉRIFICATION CRITIQUE: Si le roi était en échec, vérifier que le mouvement le sort d'échec
-    if (gameState.gameStatus?.status === 'check' && gameState.gameStatus?.player === action.player) {
-      // Simuler le mouvement pour vérifier qu'il sort d'échec
-      const simulatedState = JSON.parse(JSON.stringify(gameState)) as SecretKingBootGameState;
+    // VÉRIFICATION UNIVERSELLE: Ce mouvement ne doit pas laisser le roi en échec
+    // Simuler le mouvement pour vérifier qu'il ne met pas ou ne laisse pas le roi en échec
+    const simulatedState = JSON.parse(JSON.stringify(gameState)) as SecretKingBootGameState;
+    
+    // Appliquer le mouvement du roi temporairement
+    const fromCoords = positionToCoordinates(action.from);
+    const toCoords = positionToCoordinates(action.to);
+    
+    simulatedState.board[toCoords.y][toCoords.x] = simulatedState.board[fromCoords.y][fromCoords.x];
+    simulatedState.board[fromCoords.y][fromCoords.x] = null;
+    
+    // Mettre à jour la position du roi
+    if (action.player === 'white') {
+      simulatedState.whiteKingPosition = action.to as "D1" | "E1";
+    } else {
+      simulatedState.blackKingPosition = action.to as "D8" | "E8";
+    }
+    
+    // Vérifier si le roi serait en échec après ce mouvement
+    const wouldBeInCheck = isKingInCheck(simulatedState, action.player);
+    if (wouldBeInCheck) {
+      // Message différent selon si le roi était déjà en échec ou non
+      const reason = gameState.gameStatus?.status === 'check' && gameState.gameStatus?.player === action.player
+        ? "Ce mouvement ne sort pas le roi d'échec. Vous devez impérativement sortir d'échec."
+        : "Ce mouvement mettrait votre roi en échec, ce qui est interdit.";
       
-      // Appliquer le mouvement du roi temporairement
-      const fromCoords = positionToCoordinates(action.from);
-      const toCoords = positionToCoordinates(action.to);
-      
-      simulatedState.board[toCoords.y][toCoords.x] = simulatedState.board[fromCoords.y][fromCoords.x];
-      simulatedState.board[fromCoords.y][fromCoords.x] = null;
-      
-      // Mettre à jour la position du roi
-      if (action.player === 'white') {
-        simulatedState.whiteKingPosition = action.to as "D1" | "E1";
-      } else {
-        simulatedState.blackKingPosition = action.to as "D8" | "E8";
-      }
-      
-      // Vérifier si le roi est encore en échec après ce mouvement
-      const stillInCheck = isKingInCheck(simulatedState, action.player);
-      if (stillInCheck) {
-        return { 
-          valid: false, 
-          reason: "Ce mouvement ne sort pas le roi d'échec. Vous devez impérativement sortir d'échec." 
-        };
-      }
+      return { 
+        valid: false, 
+        reason
+      };
     }
   }
   
