@@ -366,32 +366,7 @@ export function isSecretKingBootPawnMoveLegal(
   const currentRank = fromCoords.y;
   const targetRank = toCoords.y;
   
-  let maxDistance: number;
-  if (isWhitePawn) {
-    // Pour les pions blancs
-    if (currentRank === 0) {
-      // Sur la 1ère rangée, peuvent aller jusqu'à la 4ème rangée (rang 3)
-      maxDistance = Math.min(distance, 4);
-      if (targetRank > 3) {
-        return false; // Ne peut pas dépasser la 4ème rangée
-      }
-    } else {
-      // Sur les autres rangées, mouvement normal de 1 case
-      maxDistance = 1;
-    }
-  } else {
-    // Pour les pions noirs
-    if (currentRank === 7) {
-      // Sur la 8ème rangée, peuvent aller jusqu'à la 5ème rangée (rang 4)
-      maxDistance = Math.min(distance, 4);
-      if (targetRank < 4) {
-        return false; // Ne peut pas dépasser la 5ème rangée
-      }
-    } else {
-      // Sur les autres rangées, mouvement normal de 1 case
-      maxDistance = 1;
-    }
-  }
+  let maxDistance: 1
   
   // Vérifier que la distance ne dépasse pas le maximum autorisé
   if (distance > maxDistance) {

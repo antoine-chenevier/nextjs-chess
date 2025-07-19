@@ -411,6 +411,14 @@ function generateMovesForPiece(
       // Pion blanc sur la 1ère rangée peut aller jusqu'à la 4ème rangée
       maxSteps = 4;
       maxTargetRank = 3;
+    } else if (player === 'white' && currentRank === 1) {
+      // Pion blanc sur la 2ème rangée peut aller jusqu'à la 4ème rangée
+      maxSteps = 3;
+      maxTargetRank = 3;
+    } else if (player === 'black' && currentRank === 6) {
+      // Pion noir sur la 7ème rangée peut aller jusqu'à la 5ème rangée
+      maxSteps = 3;
+      maxTargetRank = 4;
     } else if (player === 'black' && currentRank === 7) {
       // Pion noir sur la 8ème rangée peut aller jusqu'à la 5ème rangée
       maxSteps = 4;
