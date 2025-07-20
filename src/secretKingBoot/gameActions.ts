@@ -196,12 +196,8 @@ function applyMovePiece(
   action: GameAction
 ): SecretKingBootGameState {
   
-  // Vérifier la légalité du mouvement selon les règles d'échecs
-  if (gameState.gamePhase === 'playing' && !isChessMoveLegal(gameState, action.from!, action.to!)) {
-    // Mouvement illégal, retourner l'état inchangé
-    console.warn(`Mouvement illégal tenté: ${action.from} -> ${action.to}`);
-    return gameState;
-  }
+  console.log('🎬 applyMovePiece appelé avec action:', action);
+  console.log('📋 action.isEnPassant:', action.isEnPassant);
   
   const [fromFile, fromRank] = parsePosition(action.from!);
   const [toFile, toRank] = parsePosition(action.to!);
@@ -215,13 +211,26 @@ function applyMovePiece(
     const isDiagonal = Math.abs(toFile - fromFile) === 1 && Math.abs(toRank - fromRank) === 1;
     const isEmptyDestination = gameState.board[toRank][toFile] === null;
     
+    console.log(`🔍 Détection prise en passant: isDiagonal=${isDiagonal}, isEmptyDestination=${isEmptyDestination}`);
+    
     if (isDiagonal && isEmptyDestination) {
       // C'est probablement une prise en passant, vérifier qu'elle est valide
       const isWhitePawn = piece.includes('White');
+      console.log(`🧪 Test validité prise en passant pour pion ${isWhitePawn ? 'blanc' : 'noir'}: ${action.from} → ${action.to}`);
       if (isValidEnPassantCapture(gameState, action.from!, action.to!, isWhitePawn)) {
+        console.log('🎯 Prise en passant détectée et marquée dans l\'action');
         action.isEnPassant = true;
+      } else {
+        console.log('❌ Prise en passant non valide selon isValidEnPassantCapture');
       }
     }
+  }
+  
+  // Vérifier la légalité du mouvement selon les règles d'échecs (après avoir marqué la prise en passant)
+  if (gameState.gamePhase === 'playing' && !isChessMoveLegal(gameState, action.from!, action.to!, action.isEnPassant)) {
+    // Mouvement illégal, retourner l'état inchangé
+    console.warn(`Mouvement illégal tenté: ${action.from} -> ${action.to}`);
+    return gameState;
   }
   
   // Si c'est un roi, mettre à jour sa position stockée
@@ -255,12 +264,17 @@ function applyMovePiece(
   
   // Gérer la prise en passant
   if (action.isEnPassant) {
+    console.log('🔄 Traitement prise en passant...');
     // En cas de prise en passant, le pion capturé n'est pas sur la case d'arrivée
     // mais sur la même colonne que la case d'arrivée et sur la même rangée que le pion qui capture (avant le mouvement)
     const capturedPawnFile = toFile;
     const capturedPawnRank = fromRank; // Même rangée que le pion qui capture AVANT le mouvement
     
+    console.log(`🎯 Position du pion à capturer: (${capturedPawnFile}, ${capturedPawnRank}) = ${String.fromCharCode(65 + capturedPawnFile)}${capturedPawnRank + 1}`);
+    
     const capturedPawn = gameState.board[capturedPawnRank][capturedPawnFile];
+    console.log(`🔍 Pion trouvé à cette position: ${capturedPawn}`);
+    
     if (capturedPawn && capturedPawn.includes('Pawn')) {
       // VÉRIFICATION CRITIQUE : Un roi ne doit JAMAIS être capturé
       if (capturedPawn.includes('King')) {
@@ -268,19 +282,23 @@ function applyMovePiece(
         return gameState;
       }
       
+      console.log(`✅ Suppression du pion ${capturedPawn} à la position ${String.fromCharCode(65 + capturedPawnFile)}${capturedPawnRank + 1}`);
       // Supprimer le pion capturé
       gameState.board[capturedPawnRank][capturedPawnFile] = null;
       
       // Remettre le pion capturé en réserve
       addCapturedPieceToReserve(gameState, capturedPawn, action.player);
     } else {
-      console.warn(`Prise en passant: aucun pion trouvé à la position ${String.fromCharCode(65 + capturedPawnFile)}${capturedPawnRank + 1}`);
+      console.warn(`❌ Prise en passant: aucun pion trouvé à la position ${String.fromCharCode(65 + capturedPawnFile)}${capturedPawnRank + 1}`);
+      console.warn('Contenu actuel:', capturedPawn);
     }
   }
   
   // Effectuer le déplacement
+  console.log(`🚀 Déplacement: ${action.from} (${piece}) → ${action.to}`);
   gameState.board[toRank][toFile] = piece;
   gameState.board[fromRank][fromFile] = null;
+  console.log(`✅ Pièce déplacée de (${fromFile},${fromRank}) vers (${toFile},${toRank})`);
   
   // Vérifier si c'est un pion qui atteint la dernière rangée (promotion automatique)
   if (piece && piece.includes('Pawn') && isPawnPromotion(action.from!, action.to!, action.player)) {

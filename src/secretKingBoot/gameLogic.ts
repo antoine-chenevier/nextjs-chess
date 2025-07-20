@@ -307,7 +307,8 @@ export function isSecretKingBootPawnMoveLegal(
   gameState: SecretKingBootGameState,
   from: string,
   to: string,
-  piece: string
+  piece: string,
+  isEnPassant?: boolean
 ): boolean {
   if (!piece.includes('Pawn')) {
     return false; // Cette fonction ne s'applique qu'aux pions
@@ -348,6 +349,10 @@ export function isSecretKingBootPawnMoveLegal(
       return true; // Capture diagonale valide
     } else {
       // Case vide - vérifier si c'est une prise en passant valide
+      // Si on sait déjà que c'est une prise en passant, pas besoin de re-vérifier
+      if (isEnPassant) {
+        return true;
+      }
       return isValidEnPassantCapture(gameState, from, to, isWhitePawn);
     }
   } else {
@@ -479,7 +484,8 @@ export function isValidEnPassantCapture(
 export function isChessMoveLegal(
   gameState: SecretKingBootGameState, 
   from: string, 
-  to: string
+  to: string,
+  isEnPassant?: boolean
 ): boolean {
   try {
     // Pendant la phase de setup, être plus permissif
@@ -522,7 +528,7 @@ export function isChessMoveLegal(
     
     // RÈGLES SPÉCIALES POUR LES PIONS SECRET KING BOOT
     if (piece.includes('Pawn')) {
-      return isSecretKingBootPawnMoveLegal(gameState, from, to, piece);
+      return isSecretKingBootPawnMoveLegal(gameState, from, to, piece, isEnPassant);
     }
     
     // Calculer les coordonnées de destination une seule fois
@@ -854,7 +860,7 @@ function validateMovePiece(
   }
   
   // Validation spécifique selon le type de pièce (pour les cas non couverts par la logique classique)
-  return validatePieceMovement(piece, action.from, action.to, gameState.board, action.player);
+  return validatePieceMovementWithState(piece, action.from, action.to, gameState, action.player);
 }
 
 /**
@@ -1089,6 +1095,85 @@ function isValidBoardPosition(file: number, rank: number): boolean {
 }
 
 /**
+ * Valide le mouvement d'une pièce spécifique avec accès à l'état complet du jeu
+ */
+function validatePieceMovementWithState(
+  piece: string, 
+  from: string, 
+  to: string, 
+  gameState: SecretKingBootGameState,
+  player: 'white' | 'black'
+): { valid: boolean; reason?: string } {
+  
+  const [fromFile, fromRank] = parseAlgebraicPosition(from);
+  const [toFile, toRank] = parseAlgebraicPosition(to);
+  
+  const deltaX = toFile - fromFile;
+  const deltaY = toRank - fromRank;
+  const board = gameState.board;
+  
+  // Validation spécifique selon le type de pièce
+  if (piece.includes('King')) {
+    // Roi : une case dans toutes les directions
+    if (Math.abs(deltaX) <= 1 && Math.abs(deltaY) <= 1 && (deltaX !== 0 || deltaY !== 0)) {
+      return { valid: true };
+    }
+    return { valid: false, reason: "Le roi ne peut se déplacer que d'une case" };
+  }
+  
+  else if (piece.includes('Pawn')) {
+    return validatePawnMovementWithState(player, fromRank, toRank, deltaX, deltaY, gameState, toFile);
+  }
+  
+  else if (piece.includes('Knight')) {
+    // Cavalier : mouvement en L
+    if ((Math.abs(deltaX) === 2 && Math.abs(deltaY) === 1) || 
+        (Math.abs(deltaX) === 1 && Math.abs(deltaY) === 2)) {
+      return { valid: true };
+    }
+    return { valid: false, reason: "Le cavalier doit se déplacer en L" };
+  }
+  
+  else if (piece.includes('Bishop')) {
+    // Fou : diagonale
+    if (Math.abs(deltaX) === Math.abs(deltaY) && deltaX !== 0) {
+      // Vérifier que le chemin est libre
+      if (isPathClear(fromFile, fromRank, toFile, toRank, board)) {
+        return { valid: true };
+      }
+      return { valid: false, reason: "Le chemin du fou est bloqué" };
+    }
+    return { valid: false, reason: "Le fou doit se déplacer en diagonale" };
+  }
+  
+  else if (piece.includes('Rook')) {
+    // Tour : ligne droite
+    if (deltaX === 0 || deltaY === 0) {
+      // Vérifier que le chemin est libre
+      if (isPathClear(fromFile, fromRank, toFile, toRank, board)) {
+        return { valid: true };
+      }
+      return { valid: false, reason: "Le chemin de la tour est bloqué" };
+    }
+    return { valid: false, reason: "La tour doit se déplacer en ligne droite" };
+  }
+  
+  else if (piece.includes('Queen')) {
+    // Dame : ligne droite ou diagonale
+    if (deltaX === 0 || deltaY === 0 || Math.abs(deltaX) === Math.abs(deltaY)) {
+      // Vérifier que le chemin est libre
+      if (isPathClear(fromFile, fromRank, toFile, toRank, board)) {
+        return { valid: true };
+      }
+      return { valid: false, reason: "Le chemin de la dame est bloqué" };
+    }
+    return { valid: false, reason: "La dame doit se déplacer en ligne droite ou en diagonale" };
+  }
+  
+  return { valid: false, reason: "Type de pièce non reconnu" };
+}
+
+/**
  * Valide le mouvement d'une pièce spécifique
  */
 function validatePieceMovement(
@@ -1197,6 +1282,88 @@ function isPathClear(
   }
   
   return true;
+}
+
+/**
+ * Valide le mouvement spécifique des pions selon les règles de la variante avec accès à l'état du jeu
+ */
+function validatePawnMovementWithState(
+  player: 'white' | 'black',
+  fromRank: number,
+  toRank: number,
+  deltaX: number,
+  deltaY: number,
+  gameState: SecretKingBootGameState,
+  toFile: number
+): { valid: boolean; reason?: string } {
+  
+  const direction = player === 'white' ? 1 : -1;
+  const playerZone = (PAWN_ZONES[player] as readonly number[]).map(rank => rank - 1); // Convertir en index 0-based
+  const middleLine = MIDDLE_LINE[player];
+  const board = gameState.board;
+  
+  // Mouvement vers l'avant uniquement (pas de recul)
+  if (deltaY * direction <= 0) {
+    return { valid: false, reason: "Les pions ne peuvent qu'avancer" };
+  }
+  
+  // Mouvement en ligne droite (pas de capture)
+  if (deltaX === 0) {
+    const targetPiece = board[toRank][toFile];
+    if (targetPiece) {
+      return { valid: false, reason: "Case occupée" };
+    }
+    
+    // Si le pion est dans sa zone de départ (moitié de l'échiquier)
+    if (playerZone.includes(fromRank)) {
+      // Peut se déplacer de 1 à plusieurs cases jusqu'à la ligne médiane
+      if ((player === 'white' && toRank <= middleLine) || 
+          (player === 'black' && toRank >= middleLine)) {
+        
+        // Vérifier que le chemin est libre
+        const step = direction;
+        for (let rank = fromRank + step; rank !== toRank + step; rank += step) {
+          if (board[rank] && board[rank][toFile]) {
+            return { valid: false, reason: "Chemin bloqué" };
+          }
+        }
+        return { valid: true };
+      } else {
+        return { valid: false, reason: "Les pions ne peuvent pas dépasser la ligne médiane en un coup depuis leur zone de départ" };
+      }
+    } else {
+      // Après avoir franchi la ligne médiane, mouvement d'une case seulement
+      if (Math.abs(deltaY) === 1) {
+        return { valid: true };
+      } else {
+        return { valid: false, reason: "Après la ligne médiane, les pions ne peuvent avancer que d'une case" };
+      }
+    }
+  }
+  
+  // Capture en diagonale (règle classique + prise en passant)
+  else if (Math.abs(deltaX) === 1 && Math.abs(deltaY) === 1) {
+    const targetPiece = board[toRank][toFile];
+    
+    // Capture normale
+    if (targetPiece && !isPieceOwnedBy(targetPiece, player)) {
+      return { valid: true };
+    }
+    
+    // Si la case est vide, vérifier si c'est une prise en passant
+    if (!targetPiece) {
+      const fromPosition = String.fromCharCode(65 + toFile - deltaX) + (fromRank + 1);
+      const toPosition = String.fromCharCode(65 + toFile) + (toRank + 1);
+      
+      if (isValidEnPassantCapture(gameState, fromPosition, toPosition, player === 'white')) {
+        return { valid: true };
+      }
+    }
+    
+    return { valid: false, reason: "Le pion ne peut capturer qu'une pièce adverse en diagonale" };
+  }
+  
+  return { valid: false, reason: "Mouvement de pion invalide" };
 }
 
 /**
