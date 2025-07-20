@@ -106,14 +106,14 @@ export default function SecretKingBootPage() {
           max-width: 1400px;
           margin: 0 auto;
           padding: 20px;
-          display: grid;
-          grid-template-columns: 1fr 300px;
+          display: flex;
+          flex-direction: column;
           gap: 40px;
-          align-items: start;
+          align-items: center;
         }
         
         .page-header {
-          grid-column: 1 / -1;
+          width: 100%;
           text-align: center;
           margin-bottom: 30px;
           padding: 40px 30px;
@@ -190,21 +190,22 @@ export default function SecretKingBootPage() {
         }
         
         .game-section {
-          grid-column: 1;
+          width: 100%;
+          display: flex;
+          justify-content: center;
         }
         
         .rules-section {
-          grid-column: 2;
+          width: 100%;
+          max-width: 1200px;
           background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
-          padding: 30px;
+          padding: 40px;
           border-radius: 15px;
           box-shadow: 
             0 15px 35px rgba(0,0,0,0.1),
             0 5px 15px rgba(0,0,0,0.05);
-          height: fit-content;
-          position: sticky;
-          top: 20px;
           border: 1px solid rgba(255,255,255,0.2);
+          margin-top: 20px;
         }
         
         .rules-section h2 {
