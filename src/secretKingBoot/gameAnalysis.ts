@@ -282,26 +282,33 @@ function getEnPassantMovesForPawn(
 ): GameAction[] {
   const moves: GameAction[] = [];
   
+  console.log(`🔍 Vérification prise en passant pour pion ${player} en position (${pawnPosition.x}, ${pawnPosition.y})`);
+  
   // Vérifier qu'il y a au moins un mouvement dans l'historique
   if (gameState.moveHistory.length === 0) {
+    console.log('❌ Pas d\'historique de mouvements');
     return moves;
   }
   
   // Récupérer le dernier mouvement
   const lastMove = gameState.moveHistory[gameState.moveHistory.length - 1];
+  console.log('📜 Dernier mouvement:', lastMove);
   
   // La prise en passant n'est possible que si le dernier mouvement était un mouvement de pion
   if (lastMove.type !== 'move_piece' || !lastMove.piece?.includes('Pawn')) {
+    console.log('❌ Le dernier mouvement n\'était pas un mouvement de pion');
     return moves;
   }
   
   // Vérifier que le dernier mouvement était du joueur adverse
   if (lastMove.player === player) {
+    console.log('❌ Le dernier mouvement était du même joueur');
     return moves;
   }
   
   // Analyser le dernier mouvement pour voir si c'était un bond de pion
   if (!lastMove.from || !lastMove.to) {
+    console.log('❌ Positions manquantes dans le dernier mouvement');
     return moves;
   }
   
@@ -311,19 +318,30 @@ function getEnPassantMovesForPawn(
   const toFile = lastMove.to.charCodeAt(0) - 65;
   const toRank = parseInt(lastMove.to.charAt(1)) - 1;
   
+  console.log(`📊 Dernier mouvement: ${lastMove.from} (${fromFile},${fromRank}) → ${lastMove.to} (${toFile},${toRank})`);
+  
   // Vérifier que c'était un mouvement vertical (même colonne)
   if (fromFile !== toFile) {
+    console.log('❌ Mouvement non vertical');
     return moves;
   }
   
   // Vérifier que c'était un bond de au moins 2 cases
   const moveDistance = Math.abs(toRank - fromRank);
+  console.log(`📏 Distance du mouvement: ${moveDistance}`);
   if (moveDistance < 2) {
+    console.log('❌ Bond trop petit (< 2 cases)');
     return moves;
   }
   
-  // Vérifier que le pion adverse est maintenant adjacent à notre pion
-  if (Math.abs(toFile - pawnPosition.x) !== 1 || toRank !== pawnPosition.y) {
+  // CORRECTION: Vérifier que le pion adverse est maintenant adjacent horizontalement à notre pion
+  // et sur la même rangée
+  const horizontalDistance = Math.abs(toFile - pawnPosition.x);
+  const sameRank = toRank === pawnPosition.y;
+  console.log(`📐 Distance horizontale: ${horizontalDistance}, même rangée: ${sameRank}`);
+  
+  if (horizontalDistance !== 1 || !sameRank) {
+    console.log('❌ Pion adverse pas adjacent ou pas sur la même rangée');
     return moves;
   }
   
@@ -331,13 +349,17 @@ function getEnPassantMovesForPawn(
   const direction = player === 'white' ? 1 : -1;
   const captureRank = pawnPosition.y + direction;
   
+  console.log(`⬆️ Direction: ${direction}, case de capture: (${toFile}, ${captureRank})`);
+  
   // Vérifier que la case de capture est valide
   if (captureRank < 0 || captureRank > 7) {
+    console.log('❌ Case de capture hors échiquier');
     return moves;
   }
   
-  // Vérifier que la case de capture est libre
+  // CORRECTION: La case de capture doit être libre (c'est là où notre pion va aller)
   if (gameState.board[captureRank][toFile] !== null) {
+    console.log('❌ Case de capture occupée');
     return moves;
   }
   
@@ -345,8 +367,11 @@ function getEnPassantMovesForPawn(
   const fromPosition = String.fromCharCode(65 + pawnPosition.x) + (pawnPosition.y + 1);
   const toPosition = String.fromCharCode(65 + toFile) + (captureRank + 1);
   
+  console.log(`✅ Mouvement prise en passant généré: ${fromPosition} → ${toPosition}`);
+  
   // Vérifier que le mouvement est légal selon les règles d'échecs (ne met pas le roi en échec)
   if (isChessMoveLegal(gameState, fromPosition, toPosition)) {
+    console.log('✅ Mouvement légal selon les règles d\'échecs');
     moves.push({
       type: 'move_piece',
       player,
@@ -356,8 +381,11 @@ function getEnPassantMovesForPawn(
       piece: gameState.board[pawnPosition.y][pawnPosition.x]!,
       isEnPassant: true // Marquer comme prise en passant
     });
+  } else {
+    console.log('❌ Mouvement illégal selon les règles d\'échecs');
   }
   
+  console.log(`🎯 Nombre de mouvements prise en passant générés: ${moves.length}`);
   return moves;
 }
 

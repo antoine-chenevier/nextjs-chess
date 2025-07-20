@@ -276,19 +276,20 @@ export function calculateEnPassantTarget(
     return undefined;
   }
   
-  // Calculer le rang relatif (rang 1 = rang de départ pour les pions)
-  const fromRank = player === 'white' ? fromY : (7 - fromY);
-  const toRank = player === 'white' ? toY : (7 - toY);
+  // Pour les échecs standards:
+  // - Pions blancs: démarrent à fromY = 1, peuvent aller à toY = 3 (saut de 2)
+  // - Pions noirs: démarrent à fromY = 6, peuvent aller à toY = 4 (saut de 2)
   
-  // Prise en passant classique : bond de 2 cases (rang 1 -> rang 3)
-  if (fromRank === 1 && toRank === 3) {
-    return toX;
-  }
-  
-  // Prise en passant Secret King Boot : bond de 3 cases (rang 1 -> rang 4)
-  // Note: Dans Secret King Boot, les pions peuvent faire un bond de 3 cases depuis leur position de départ
-  if (fromRank === 1 && toRank === 4) {
-    return toX;
+  if (player === 'white') {
+    // Pion blanc: saut de 2 cases depuis la position de départ (rang 2 = indice 1)
+    if (fromY === 1 && toY === 3) {
+      return toX;
+    }
+  } else {
+    // Pion noir: saut de 2 cases depuis la position de départ (rang 7 = indice 6)
+    if (fromY === 6 && toY === 4) {
+      return toX;
+    }
   }
   
   return undefined;
@@ -503,32 +504,30 @@ function generateEnPassantMoves(
   player: 'white' | 'black'
 ): { x: number; y: number }[] {
   const moves: { x: number; y: number }[] = [];
-  
+
   // Si aucune prise en passant n'est possible, retourner vide
   if (gameState.passant === undefined) {
     return moves;
   }
-  
+
   const direction = player === 'white' ? 1 : -1;
-  
+
   // Vérifier les captures diagonales pour prise en passant
   for (const dx of [-1, 1]) {
     const captureX = fromX + dx;
     const captureY = fromY + direction;
-    
-    if (isValidPosition(captureX, captureY)) {
-      // Condition principale : board.passant === dest.x (même logique que index.ts)
-      if (gameState.passant === captureX) {
-        // Vérifier qu'il y a bien un pion adverse sur notre rangée à la position passant
-        // (même logique que dans index.ts : board.pieces[dest.x + orig.y * 8])
-        const enemyPawn = gameState.board[fromY][gameState.passant];
-        if (enemyPawn && enemyPawn.includes('Pawn') && !isPieceOwnedBy(enemyPawn, player)) {
-          moves.push({ x: captureX, y: captureY });
-        }
+
+    if (isValidPosition(captureX, captureY) && captureX === gameState.passant) {
+      // Vérifier qu'il y a bien un pion adverse sur la rangée initiale
+      const enemyPawnY = fromY;
+      const enemyPawn = gameState.board[enemyPawnY][captureX];
+
+      if (enemyPawn && enemyPawn.includes('Pawn') && !isPieceOwnedBy(enemyPawn, player)) {
+        moves.push({ x: captureX, y: captureY });
       }
     }
   }
-  
+
   return moves;
 }
 
@@ -544,33 +543,27 @@ function generatePawnMoves(
 ): { x: number; y: number }[] {
   const moves: { x: number; y: number }[] = [];
   const direction = player === 'white' ? 1 : -1;
-  
-  // Règles spéciales Secret King Boot pour les pions
-  // Pions blancs sur rang 0 peuvent aller jusqu'au rang 3
-  // Pions noirs sur rang 7 peuvent aller jusqu'au rang 4
-  const isOnStartingRank = (player === 'white' && fromY === 0) || (player === 'black' && fromY === 7);
-  const maxDistance = isOnStartingRank ? (player === 'white' ? 3 : 3) : 1; // Jusqu'à 3 cases depuis le rang de départ
-  
+
   // Mouvement vers l'avant (peut être multiple pour Secret King Boot)
+  const isOnStartingRank = (player === 'white' && fromY === 1) || (player === 'black' && fromY === 6);
+  const maxDistance = isOnStartingRank ? 2 : 1; // Jusqu'à 2 cases depuis le rang de départ
+
   for (let distance = 1; distance <= maxDistance; distance++) {
-    const newY = fromY + (direction * distance);
-    
+    const newY = fromY + direction * distance;
+
     if (!isValidPosition(fromX, newY)) break;
-    
+
     // Vérifier que la case est libre
     if (board[newY][fromX]) break; // Chemin bloqué, arrêter
-    
+
     moves.push({ x: fromX, y: newY });
-    
-    // Si pas sur le rang de départ, ne faire qu'un pas
-    if (!isOnStartingRank) break;
   }
-  
+
   // Captures en diagonale (règle standard)
   for (const dx of [-1, 1]) {
     const captureX = fromX + dx;
     const captureY = fromY + direction;
-    
+
     if (isValidPosition(captureX, captureY)) {
       const targetPiece = board[captureY][captureX];
       if (targetPiece && !isPieceOwnedBy(targetPiece, player)) {
@@ -578,13 +571,13 @@ function generatePawnMoves(
       }
     }
   }
-  
+
   // Ajouter les prises en passant si l'état du jeu est disponible
   if (gameState) {
     const enPassantMoves = generateEnPassantMoves(fromX, fromY, gameState, player);
     moves.push(...enPassantMoves);
   }
-  
+
   return moves;
 }
 

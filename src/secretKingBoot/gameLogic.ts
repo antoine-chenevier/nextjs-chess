@@ -441,14 +441,14 @@ export function isValidEnPassantCapture(
   const fromCoords = positionToCoordinates(from);
   const toCoords = positionToCoordinates(to);
   
-  // Vérifier que c'était un mouvement vertical (même colonne) de 2 cases
+  // Vérifier que c'était un mouvement vertical (même colonne) de 2 cases ou plus
   if (lastFromCoords.x !== lastToCoords.x) {
     return false; // Pas un mouvement vertical
   }
   
   const moveDistance = Math.abs(lastToCoords.y - lastFromCoords.y);
-  if (moveDistance !== 2) {
-    return false; // Pas un bond de 2 cases
+  if (moveDistance < 2) {
+    return false; // Doit être un bond d'au moins 2 cases pour permettre la prise en passant
   }
   
   // Vérifier que le pion adverse est maintenant adjacent à notre pion (même rangée)
@@ -456,9 +456,9 @@ export function isValidEnPassantCapture(
     return false; // Pas adjacent ou pas sur la même rangée
   }
   
-  // Vérifier que notre mouvement va sur la case que le pion adverse a "traversée"
+  // Vérifier que notre mouvement va sur la case juste devant notre pion (case de capture)
   const expectedCaptureX = lastToCoords.x; // Même colonne que le pion adverse
-  const expectedCaptureY = lastFromCoords.y + (isWhitePawn ? 1 : -1); // Case traversée
+  const expectedCaptureY = fromCoords.y + (isWhitePawn ? 1 : -1); // Une case devant notre pion
   
   if (toCoords.x !== expectedCaptureX || toCoords.y !== expectedCaptureY) {
     return false; // Ne va pas sur la bonne case
