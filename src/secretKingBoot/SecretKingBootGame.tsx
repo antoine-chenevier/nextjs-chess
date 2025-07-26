@@ -75,6 +75,37 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
       return;
     }
     
+    // Si c'est une sélection de promotion, exécuter directement la promotion
+    if (action.type === 'select_promotion' && action.piece) {
+      // Mettre à jour le numéro de tour pour l'action
+      action.turn = gameState.turn;
+      action.player = gameState.currentPlayer;
+      
+      const validation = isValidAction(gameState, action);
+      
+      if (!validation.valid) {
+        alert(`Promotion invalide: ${validation.reason}`);
+        return;
+      }
+      
+      const newState = applyAction(gameState, action);
+      setGameState(newState);
+      
+      // Analyser le nouvel état
+      const analysis = analyzeGameState(newState);
+      setGameAnalysis(analysis);
+      
+      // Réinitialiser les sélections après la promotion
+      setSelectedAction(null);
+      setSelectedPieceForKingMove(null);
+      setSelectedPieceForPlacement(null);
+      setSelectedPiecePosition(null);
+      setPromotionPending(null);
+      setPossibleMoves([]);
+      
+      return;
+    }
+    
     const validation = isValidAction(gameState, action);
     
     if (!validation.valid) {

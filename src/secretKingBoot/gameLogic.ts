@@ -1078,11 +1078,10 @@ function validateSelectPromotion(
     return { valid: false, reason: "Type de pièce pour la promotion requis" };
   }
   
-  // Vérifier que la pièce de promotion est valide
-  const validPromotions = ['queen', 'rook', 'bishop', 'knight'];
-  const promotionType = action.piece.toLowerCase().replace('white', '').replace('black', '');
+  // Vérifier que la pièce de promotion est valide (accepter les deux formats)
+  const validPromotions = ['queen', 'rook', 'bishop', 'knight', 'Queen', 'Rook', 'Bishop', 'Knight'];
   
-  if (!validPromotions.includes(promotionType)) {
+  if (!validPromotions.includes(action.piece)) {
     return { valid: false, reason: "Promotion invalide, choisir parmi: dame, tour, fou, cavalier" };
   }
   

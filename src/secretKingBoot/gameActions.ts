@@ -113,11 +113,12 @@ function updateGameStatus(gameState: SecretKingBootGameState): SecretKingBootGam
   
   // Ne changer de joueur que si ce n'est pas une action de placement de roi (phase setup)
   // et si la partie n'est pas terminée (échec et mat ou pat)
-  if (updatedState.gamePhase === 'playing') {
+  // et si aucune promotion n'est en attente
+  if (updatedState.gamePhase === 'playing' && !updatedState.promotionRequired) {
     // Pour certaines actions, changer de joueur
     const lastAction = updatedState.moveHistory[updatedState.moveHistory.length - 1];
     
-    if (lastAction && ['move_piece', 'move_king_and_place', 'place_piece'].includes(lastAction.type)) {
+    if (lastAction && ['move_piece', 'move_king_and_place', 'place_piece', 'select_promotion'].includes(lastAction.type)) {
       // RÈGLE CRITIQUE: Toujours changer de joueur après un mouvement valide
       // Même si le joueur était en échec, après avoir joué un mouvement valide, c'est au tour de l'adversaire
       updatedState.currentPlayer = updatedState.currentPlayer === 'white' ? 'black' : 'white';
