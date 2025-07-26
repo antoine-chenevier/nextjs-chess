@@ -8,6 +8,12 @@ import { isKingInCheck } from './improvedCheckLogic';
 export function getAvailableActions(gameState: SecretKingBootGameState): ActionType[] {
   const actions: ActionType[] = [];
   
+  // Si une promotion est en attente, seule l'action select_promotion est disponible
+  if (gameState.promotionRequired) {
+    actions.push('select_promotion');
+    return actions;
+  }
+  
   // Phase de setup : placement des rois
   if (gameState.gamePhase === 'setup') {
     const kingPosition = gameState.currentPlayer === 'white' ? 

@@ -729,6 +729,9 @@ export function isValidAction(
     case 'promote_pawn':
       return validatePromotePawn(gameState, action);
     
+    case 'select_promotion':
+      return validateSelectPromotion(gameState, action);
+    
     default:
       return { valid: false, reason: "Type d'action non reconnu" };
   }
@@ -1052,6 +1055,40 @@ function validatePromotePawn(
   
   if (!validPromotions.includes(promotionType)) {
     return { valid: false, reason: "Promotion invalide, choisir parmi: dame, tour, fou, cavalier" };
+  }
+  
+  return { valid: true };
+}
+
+/**
+ * Valide la sélection d'une pièce pour la promotion
+ */
+function validateSelectPromotion(
+  gameState: SecretKingBootGameState, 
+  action: GameAction
+): { valid: boolean; reason?: string } {
+  
+  // Vérifier qu'il y a une promotion en attente
+  if (!gameState.promotionRequired) {
+    return { valid: false, reason: "Aucune promotion en attente" };
+  }
+  
+  // Vérifier que la pièce de promotion est spécifiée
+  if (!action.piece) {
+    return { valid: false, reason: "Type de pièce pour la promotion requis" };
+  }
+  
+  // Vérifier que la pièce de promotion est valide
+  const validPromotions = ['queen', 'rook', 'bishop', 'knight'];
+  const promotionType = action.piece.toLowerCase().replace('white', '').replace('black', '');
+  
+  if (!validPromotions.includes(promotionType)) {
+    return { valid: false, reason: "Promotion invalide, choisir parmi: dame, tour, fou, cavalier" };
+  }
+  
+  // Vérifier que c'est le bon joueur qui fait la promotion
+  if (action.player !== gameState.promotionRequired.player) {
+    return { valid: false, reason: "Ce n'est pas à ce joueur de choisir la promotion" };
   }
   
   return { valid: true };

@@ -43,6 +43,7 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
   const [selectedPieceForKingMove, setSelectedPieceForKingMove] = useState<string | null>(null);
   const [selectedPieceForPlacement, setSelectedPieceForPlacement] = useState<string | null>(null);
   const [selectedPiecePosition, setSelectedPiecePosition] = useState<string | null>(null);
+  const [promotionPending, setPromotionPending] = useState<{from: string, to: string, player: 'white' | 'black'} | null>(null);
   
   // États pour le bot
   const [bot, setBot] = useState<Bot | null>(null);
@@ -87,6 +88,14 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
     // Analyser le nouvel état
     const analysis = analyzeGameState(newState);
     setGameAnalysis(analysis);
+    
+    // Vérifier si une promotion est requise
+    if (newState.promotionRequired) {
+      // Afficher automatiquement le choix de promotion
+      setPromotionPending(newState.promotionRequired);
+      handleActionSelection('select_promotion');
+      return; // Ne pas réinitialiser les sélections pour permettre la promotion
+    }
     
     // Vérifier si la partie est terminée et afficher un message
     if (newState.gameStatus) {
@@ -263,6 +272,44 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
       setSelectedAction(actionType);
       const moves = getPossibleMoves(gameState, actionType);
       setPossibleMoves(moves);
+      return;
+    }
+    
+    // Pour "select_promotion", afficher les pièces de promotion disponibles
+    if (actionType === 'select_promotion') {
+      setSelectedAction(actionType);
+      const player = gameState.currentPlayer;
+      const turn = gameState.turn;
+      
+      // Créer des actions pour chaque type de pièce de promotion
+      const promotionOptions: GameAction[] = [
+        {
+          type: 'select_promotion',
+          player,
+          turn,
+          piece: 'Queen'
+        },
+        {
+          type: 'select_promotion',
+          player,
+          turn,
+          piece: 'Rook'
+        },
+        {
+          type: 'select_promotion',
+          player,
+          turn,
+          piece: 'Bishop'
+        },
+        {
+          type: 'select_promotion',
+          player,
+          turn,
+          piece: 'Knight'
+        }
+      ];
+      
+      setPossibleMoves(promotionOptions);
       return;
     }
     
@@ -724,7 +771,8 @@ const ActionSelector: React.FC<ActionSelectorProps> = ({
     move_piece: 'Déplacer une pièce',
     move_king_and_place: 'Déplacer roi + placer pièce',
     exchange_pieces: 'Échanger des pions',
-    promote_pawn: 'Promouvoir un pion'
+    promote_pawn: 'Promouvoir un pion',
+    select_promotion: 'Choisir la promotion'
   };
   
   return (
@@ -848,6 +896,15 @@ function formatMoveDescription(move: GameAction): string {
       return `${move.cost} pions → ${pieceName}`;
     case 'promote_pawn':
       return `Promouvoir pion en ${move.piece}`;
+    case 'select_promotion':
+      const promotionNames = {
+        Queen: 'Dame',
+        Rook: 'Tour',
+        Bishop: 'Fou',
+        Knight: 'Cavalier'
+      };
+      const promotionName = promotionNames[move.piece as keyof typeof promotionNames] || move.piece;
+      return `Choisir ${promotionName}`;
     default:
       return `${move.type} ${move.from || ''} → ${move.to || ''}`;
   }

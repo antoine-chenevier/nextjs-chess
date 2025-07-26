@@ -67,6 +67,10 @@ export function applyAction(
       intermediateState = applyPromotePawn(newState, action);
       break;
     
+    case 'select_promotion':
+      intermediateState = applySelectPromotion(newState, action);
+      break;
+    
     default:
       intermediateState = newState;
       break;
@@ -300,11 +304,15 @@ function applyMovePiece(
   gameState.board[fromRank][fromFile] = null;
   console.log(`✅ Pièce déplacée de (${fromFile},${fromRank}) vers (${toFile},${toRank})`);
   
-  // Vérifier si c'est un pion qui atteint la dernière rangée (promotion automatique)
+  // Vérifier si c'est un pion qui atteint la dernière rangée (nécessite une promotion)
   if (piece && piece.includes('Pawn') && isPawnPromotion(action.from!, action.to!, action.player)) {
-    // Promotion automatique en dame (peut être modifié selon les besoins)
-    const promotionPiece = formatPieceForBoard('queen', action.player);
-    gameState.board[toRank][toFile] = promotionPiece;
+    // Marquer que ce mouvement nécessite une promotion, mais ne pas l'appliquer automatiquement
+    // La promotion sera gérée par l'interface utilisateur
+    gameState.promotionRequired = {
+      from: action.from!,
+      to: action.to!,
+      player: action.player
+    };
   }
   
   // Ne pas changer de joueur ici - sera géré par updateGameStatus selon l'état d'échec
@@ -404,6 +412,35 @@ function applyPromotePawn(
   
   // Remplacer le pion par la pièce promue
   gameState.board[rank][file] = formatPieceForBoard(action.piece!, action.player);
+  
+  // Ne pas changer de joueur ici - sera géré par updateGameStatus selon l'état d'échec
+  
+  // Ne pas appeler updateGameStatus ici - sera fait dans applyAction
+  return gameState;
+}
+
+/**
+ * Applique la sélection d'une pièce pour la promotion
+ */
+function applySelectPromotion(
+  gameState: SecretKingBootGameState, 
+  action: GameAction
+): SecretKingBootGameState {
+  
+  if (!gameState.promotionRequired) {
+    console.error('Aucune promotion en attente');
+    return gameState;
+  }
+  
+  const { from, to, player } = gameState.promotionRequired;
+  const [file, rank] = parsePosition(to);
+  
+  // Appliquer la promotion avec la pièce choisie
+  const promotionPiece = formatPieceForBoard(action.piece!, player);
+  gameState.board[rank][file] = promotionPiece;
+  
+  // Supprimer l'état de promotion en attente
+  delete gameState.promotionRequired;
   
   // Ne pas changer de joueur ici - sera géré par updateGameStatus selon l'état d'échec
   

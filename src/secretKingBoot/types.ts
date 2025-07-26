@@ -40,6 +40,13 @@ export interface SecretKingBootGameState {
   // Prise en passant - colonne où un pion vient de faire un bond de 2 ou 3 cases
   passant?: number; // Colonne (0-7) où la prise en passant est possible
   
+  // Promotion en attente - nécessite le choix du joueur
+  promotionRequired?: {
+    from: string;
+    to: string;
+    player: 'white' | 'black';
+  };
+  
   // Intégration avec la logique d'échecs classique
   chessBoard?: Board; // Représentation compatible avec la logique d'échecs
   chessGameState?: ChessGameState;
@@ -53,6 +60,7 @@ export type ActionType =
   | 'move_king_and_place'  // Déplacer le roi ET placer une pièce
   | 'exchange_pieces'      // Échanger des pions contre une autre pièce
   | 'promote_pawn'         // Promotion classique d'un pion
+  | 'select_promotion'     // Sélectionner le type de pièce pour la promotion
   | 'place_piece';         // Placer une pièce de la réserve sur l'échiquier
 
 export interface GameAction {
