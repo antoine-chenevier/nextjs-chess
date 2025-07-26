@@ -107,6 +107,9 @@ export function getPossibleMoves(
     case 'move_king_and_place':
       return getKingMoveAndPlaceMoves(gameState);
     
+    case 'place_piece':
+      return getPlacePieceMoves(gameState);
+    
     case 'exchange_pieces':
       return getExchangeMoves(gameState);
     
@@ -122,6 +125,7 @@ export function getActionCost(action: GameAction): number {
   switch (action.type) {
     case 'generate_pawn':
     case 'move_piece':
+    case 'place_piece':
     case 'exchange_pieces':
     case 'promote_pawn':
       return 1; // 1 coup
@@ -227,6 +231,69 @@ function getKingPlacementMoves(player: 'white' | 'black', turn: number): GameAct
     turn,
     to
   }));
+}
+
+/**
+ * Génère les mouvements de placement de pièces de la réserve
+ */
+function getPlacePieceMoves(gameState: SecretKingBootGameState): GameAction[] {
+  const moves: GameAction[] = [];
+  const player = gameState.currentPlayer;
+  const turn = gameState.turn;
+  const reserve = player === 'white' ? gameState.whiteReserve : gameState.blackReserve;
+  
+  // Obtenir les types de pièces déjà présents sur l'échiquier
+  const pieceTypesOnBoard = getPieceTypesOnBoard(gameState, player);
+  
+  // Types de pièces disponibles en réserve (filtrée)
+  const availablePieces: { type: string; count: number }[] = [
+    { type: 'Pawn', count: reserve.pawns },
+    { type: 'Knight', count: reserve.knights },
+    { type: 'Bishop', count: reserve.bishops },
+    { type: 'Rook', count: reserve.rooks },
+    { type: 'Queen', count: reserve.queens }
+  ];
+
+  // Filtrer les pièces disponibles pour exclure celles déjà présentes sur l'échiquier
+  // (sauf les pions car on peut en avoir plusieurs)
+  const filteredPieces = availablePieces.filter(pieceInfo => {
+    if (pieceInfo.type === 'Pawn') {
+      return true; // Toujours autoriser les pions
+    }
+    return !pieceTypesOnBoard.has(pieceInfo.type); // Exclure les autres types déjà présents
+  });
+
+  // Pour chaque type de pièce disponible (filtrée)
+  for (const pieceInfo of filteredPieces) {
+    if (pieceInfo.count > 0) {
+      // Pour chaque case vide de l'échiquier
+      for (let rank = 0; rank < 8; rank++) {
+        for (let file = 0; file < 8; file++) {
+          if (gameState.board[rank][file] === null) {
+            const position = String.fromCharCode(65 + file) + (rank + 1);
+            
+            // Vérifier les règles spéciales pour les pions
+            if (pieceInfo.type === 'Pawn') {
+              const allowedRanks = player === 'white' ? [1, 2, 3, 4] : [5, 6, 7, 8];
+              if (!allowedRanks.includes(rank + 1)) {
+                continue; // Passer cette case si un pion ne peut pas y être placé
+              }
+            }
+            
+            moves.push({
+              type: 'place_piece',
+              player,
+              turn,
+              to: position,
+              piece: pieceInfo.type
+            });
+          }
+        }
+      }
+    }
+  }
+  
+  return moves;
 }
 
 function getPieceMovementMoves(gameState: SecretKingBootGameState): GameAction[] {
