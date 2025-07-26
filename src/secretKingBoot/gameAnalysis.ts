@@ -674,6 +674,36 @@ function isPieceOwnedBy(piece: string, player: 'white' | 'black'): boolean {
   }
 }
 
+/**
+ * Vérifie quels types de pièces (hors pions et roi) sont déjà présents sur l'échiquier pour un joueur
+ * Retourne un Set contenant les types de pièces déjà placées
+ */
+function getPieceTypesOnBoard(gameState: SecretKingBootGameState, player: 'white' | 'black'): Set<string> {
+  const pieceTypesOnBoard = new Set<string>();
+  
+  for (let rank = 0; rank < 8; rank++) {
+    for (let file = 0; file < 8; file++) {
+      const piece = gameState.board[rank][file];
+      if (piece && isPieceOwnedBy(piece, player)) {
+        // Extraire le type de pièce (Knight, Bishop, Rook, Queen)
+        // On ignore les pions car on peut en avoir plusieurs, et le roi car il y en a toujours un
+        if (piece.includes('Knight')) {
+          pieceTypesOnBoard.add('Knight');
+        } else if (piece.includes('Bishop')) {
+          pieceTypesOnBoard.add('Bishop');
+        } else if (piece.includes('Rook')) {
+          pieceTypesOnBoard.add('Rook');
+        } else if (piece.includes('Queen')) {
+          pieceTypesOnBoard.add('Queen');
+        }
+        // On ignore intentionnellement Pawn et King
+      }
+    }
+  }
+  
+  return pieceTypesOnBoard;
+}
+
 function countPiecesOnBoard(gameState: SecretKingBootGameState, player: 'white' | 'black'): number {
   let count = 0;
   
@@ -758,6 +788,18 @@ function getKingMoveAndPlaceMoves(gameState: SecretKingBootGameState): GameActio
     { type: 'Rook', count: reserve.rooks },
     { type: 'Queen', count: reserve.queens }
   ];
+
+  // Obtenir les types de pièces déjà présents sur l'échiquier
+  const pieceTypesOnBoard = getPieceTypesOnBoard(gameState, player);
+  
+  // Filtrer les pièces disponibles pour exclure celles déjà présentes sur l'échiquier
+  // (sauf les pions car on peut en avoir plusieurs)
+  const filteredPieces = availablePieces.filter(pieceInfo => {
+    if (pieceInfo.type === 'Pawn') {
+      return true; // Toujours autoriser les pions
+    }
+    return !pieceTypesOnBoard.has(pieceInfo.type); // Exclure les autres types déjà présents
+  });
   
   // Pour chaque mouvement possible du roi
   for (const kingMove of kingMoves) {
@@ -791,8 +833,8 @@ function getKingMoveAndPlaceMoves(gameState: SecretKingBootGameState): GameActio
       }
     }
     
-    // Pour chaque type de pièce disponible en réserve
-    for (const pieceInfo of availablePieces) {
+    // Pour chaque type de pièce disponible en réserve (filtrée)
+    for (const pieceInfo of filteredPieces) {
       if (pieceInfo.count > 0) {
         // Vérifier les règles spéciales pour les pions
         if (pieceInfo.type === 'Pawn') {

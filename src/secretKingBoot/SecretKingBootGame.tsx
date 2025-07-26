@@ -24,6 +24,39 @@ import { createBot, BotDifficulty, Bot, getDifficultyDescription } from './bot';
 import { validateGameIntegrity } from './gameLogic';
 import pieceComponents from '../pieces';
 
+/**
+ * Vérifie quels types de pièces (hors pions et roi) sont déjà présents sur l'échiquier pour un joueur
+ * Retourne un Set contenant les types de pièces déjà placées
+ */
+function getPieceTypesOnBoard(gameState: SecretKingBootGameState, player: 'white' | 'black'): Set<string> {
+  const pieceTypesOnBoard = new Set<string>();
+  
+  for (let rank = 0; rank < 8; rank++) {
+    for (let file = 0; file < 8; file++) {
+      const piece = gameState.board[rank][file];
+      if (piece) {
+        const isPieceOwnedByPlayer = player === 'white' ? piece.includes('White') : piece.includes('Black');
+        if (isPieceOwnedByPlayer) {
+          // Extraire le type de pièce (Knight, Bishop, Rook, Queen)
+          // On ignore les pions car on peut en avoir plusieurs, et le roi car il y en a toujours un
+          if (piece.includes('Knight')) {
+            pieceTypesOnBoard.add('Knight');
+          } else if (piece.includes('Bishop')) {
+            pieceTypesOnBoard.add('Bishop');
+          } else if (piece.includes('Rook')) {
+            pieceTypesOnBoard.add('Rook');
+          } else if (piece.includes('Queen')) {
+            pieceTypesOnBoard.add('Queen');
+          }
+          // On ignore intentionnellement Pawn et King
+        }
+      }
+    }
+  }
+  
+  return pieceTypesOnBoard;
+}
+
 interface SecretKingBootGameProps {
   onGameEnd?: (winner: 'white' | 'black' | 'draw') => void;
   enableAI?: boolean;
@@ -178,17 +211,21 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
       return;
     }
     
-    // Pour "move_king_and_place", afficher uniquement les pièces disponibles
+    // Pour "move_king_and_place", afficher uniquement les pièces disponibles qui ne sont pas déjà sur l'échiquier
     if (actionType === 'move_king_and_place') {
       setSelectedAction(actionType);
       const reserve = gameState.currentPlayer === 'white' ? 
         gameState.whiteReserve : gameState.blackReserve;
       
-      // Créer des actions pour chaque type de pièce disponible
+      // Obtenir les types de pièces déjà présents sur l'échiquier
+      const pieceTypesOnBoard = getPieceTypesOnBoard(gameState, gameState.currentPlayer);
+      
+      // Créer des actions pour chaque type de pièce disponible (filtrée)
       const pieceOptions: GameAction[] = [];
       const player = gameState.currentPlayer;
       const turn = gameState.turn;
       
+      // Les pions sont toujours autorisés car on peut en avoir plusieurs
       if (reserve.pawns > 0) {
         pieceOptions.push({
           type: 'move_king_and_place',
@@ -197,7 +234,9 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
           piece: 'Pawn'
         });
       }
-      if (reserve.knights > 0) {
+      
+      // Pour les autres pièces, vérifier qu'elles ne sont pas déjà présentes sur l'échiquier
+      if (reserve.knights > 0 && !pieceTypesOnBoard.has('Knight')) {
         pieceOptions.push({
           type: 'move_king_and_place',
           player,
@@ -205,7 +244,7 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
           piece: 'Knight'
         });
       }
-      if (reserve.bishops > 0) {
+      if (reserve.bishops > 0 && !pieceTypesOnBoard.has('Bishop')) {
         pieceOptions.push({
           type: 'move_king_and_place',
           player,
@@ -213,7 +252,7 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
           piece: 'Bishop'
         });
       }
-      if (reserve.rooks > 0) {
+      if (reserve.rooks > 0 && !pieceTypesOnBoard.has('Rook')) {
         pieceOptions.push({
           type: 'move_king_and_place',
           player,
@@ -221,7 +260,7 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
           piece: 'Rook'
         });
       }
-      if (reserve.queens > 0) {
+      if (reserve.queens > 0 && !pieceTypesOnBoard.has('Queen')) {
         pieceOptions.push({
           type: 'move_king_and_place',
           player,
@@ -234,17 +273,21 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
       return;
     }
     
-    // Pour "place_piece", afficher uniquement les pièces disponibles
+    // Pour "place_piece", afficher uniquement les pièces disponibles qui ne sont pas déjà sur l'échiquier
     if (actionType === 'place_piece') {
       setSelectedAction(actionType);
       const reserve = gameState.currentPlayer === 'white' ? 
         gameState.whiteReserve : gameState.blackReserve;
       
-      // Créer des actions pour chaque type de pièce disponible
+      // Obtenir les types de pièces déjà présents sur l'échiquier
+      const pieceTypesOnBoard = getPieceTypesOnBoard(gameState, gameState.currentPlayer);
+      
+      // Créer des actions pour chaque type de pièce disponible (filtrée)
       const pieceOptions: GameAction[] = [];
       const player = gameState.currentPlayer;
       const turn = gameState.turn;
       
+      // Les pions sont toujours autorisés car on peut en avoir plusieurs
       if (reserve.pawns > 0) {
         pieceOptions.push({
           type: 'place_piece',
@@ -253,7 +296,9 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
           piece: 'Pawn'
         });
       }
-      if (reserve.knights > 0) {
+      
+      // Pour les autres pièces, vérifier qu'elles ne sont pas déjà présentes sur l'échiquier
+      if (reserve.knights > 0 && !pieceTypesOnBoard.has('Knight')) {
         pieceOptions.push({
           type: 'place_piece',
           player,
@@ -261,7 +306,7 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
           piece: 'Knight'
         });
       }
-      if (reserve.bishops > 0) {
+      if (reserve.bishops > 0 && !pieceTypesOnBoard.has('Bishop')) {
         pieceOptions.push({
           type: 'place_piece',
           player,
@@ -269,7 +314,7 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
           piece: 'Bishop'
         });
       }
-      if (reserve.rooks > 0) {
+      if (reserve.rooks > 0 && !pieceTypesOnBoard.has('Rook')) {
         pieceOptions.push({
           type: 'place_piece',
           player,
@@ -277,7 +322,7 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
           piece: 'Rook'
         });
       }
-      if (reserve.queens > 0) {
+      if (reserve.queens > 0 && !pieceTypesOnBoard.has('Queen')) {
         pieceOptions.push({
           type: 'place_piece',
           player,
