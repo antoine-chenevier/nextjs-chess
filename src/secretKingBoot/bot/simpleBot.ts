@@ -2,6 +2,7 @@ import { Bot, BotConfig, BotDifficulty } from './types';
 import { SecretKingBootGameState, GameAction, ActionType } from '../types';
 import { getAvailableActions, getPossibleMoves } from '../gameAnalysis';
 import { evaluatePosition } from './evaluation';
+import { evaluatePositionAdvanced } from './advancedEvaluation';
 import { applyAction } from '../gameActions';
 
 export class SimpleBot implements Bot {
@@ -53,7 +54,7 @@ export class SimpleBot implements Bot {
   }
 
   /**
-   * Stratégie moyenne : évaluation gloutonne (1 coup)
+   * Stratégie moyenne : évaluation gloutonne (1 coup) avec évaluation améliorée
    */
   private makeGreedyMove(gameState: SecretKingBootGameState, possibleActions: GameAction[]): GameAction {
     let bestAction = possibleActions[0];
@@ -63,7 +64,10 @@ export class SimpleBot implements Bot {
       try {
         const newState = this.simulateAction(gameState, action);
         if (newState) {
-          const score = evaluatePosition(newState, gameState.currentPlayer);
+          // Utiliser l'évaluation avancée pour HARD, simple pour MEDIUM
+          const score = this.config.difficulty === BotDifficulty.HARD ? 
+            evaluatePositionAdvanced(newState, gameState.currentPlayer) :
+            evaluatePosition(newState, gameState.currentPlayer);
           
           // Ajouter un peu de randomness pour éviter les jeux trop prévisibles
           const randomBonus = (Math.random() - 0.5) * this.config.randomness * 100;
@@ -84,15 +88,16 @@ export class SimpleBot implements Bot {
   }
 
   /**
-   * Stratégie difficile : minimax avec profondeur limitée
+   * Stratégie difficile : minimax avec profondeur et évaluation améliorées
    */
   private makeMiniMaxMove(gameState: SecretKingBootGameState, possibleActions: GameAction[]): GameAction {
     let bestAction = possibleActions[0];
     let bestScore = -Infinity;
+    const searchDepth = this.config.maxDepth || 3; // Profondeur améliorée
 
     for (const action of possibleActions) {
       try {
-        const score = this.minimax(gameState, action, 2, false, -Infinity, Infinity);
+        const score = this.minimax(gameState, action, searchDepth, false, -Infinity, Infinity);
         
         if (score > bestScore) {
           bestScore = score;
@@ -121,7 +126,7 @@ export class SimpleBot implements Bot {
     const newState = this.simulateAction(gameState, action);
     
     if (!newState || depth === 0) {
-      return evaluatePosition(newState || gameState, gameState.currentPlayer);
+      return evaluatePositionAdvanced(newState || gameState, gameState.currentPlayer);
     }
 
     const availableActionTypes = getAvailableActions(newState);
@@ -133,7 +138,7 @@ export class SimpleBot implements Bot {
     }
     
     if (allPossibleActions.length === 0) {
-      return evaluatePosition(newState, gameState.currentPlayer);
+      return evaluatePositionAdvanced(newState, gameState.currentPlayer);
     }
 
     if (isMaximizing) {
@@ -162,12 +167,20 @@ export class SimpleBot implements Bot {
   }
 
   /**
-   * Simule une action sans modifier l'état original
+   * Simule une action sans modifier l'état original - version optimisée
    */
   private simulateAction(gameState: SecretKingBootGameState, action: GameAction): SecretKingBootGameState | null {
     try {
-      // Créer une copie profonde de l'état
-      const stateCopy: SecretKingBootGameState = JSON.parse(JSON.stringify(gameState));
+      // Optimisation : éviter JSON.parse/stringify pour de meilleures performances
+      const stateCopy: SecretKingBootGameState = {
+        ...gameState,
+        board: gameState.board.map(row => [...row]),
+        whiteReserve: { ...gameState.whiteReserve },
+        blackReserve: { ...gameState.blackReserve },
+        moveHistory: [...gameState.moveHistory],
+        gameStatus: gameState.gameStatus ? { ...gameState.gameStatus } : undefined,
+        promotionRequired: gameState.promotionRequired ? { ...gameState.promotionRequired } : undefined
+      };
       
       // Appliquer l'action sur la copie
       return applyAction(stateCopy, action);
