@@ -532,6 +532,20 @@ export const SecretKingBootGame: React.FC<SecretKingBootGameProps> = ({
                 >
                   🤖 Bot Difficile
                 </button>
+                <button 
+                  onClick={() => enableBotMode(BotDifficulty.EXPERT)}
+                  className={styles.botButton}
+                  title={getDifficultyDescription(BotDifficulty.EXPERT)}
+                >
+                  🧠 Bot Expert
+                </button>
+                <button 
+                  onClick={() => enableBotMode(BotDifficulty.MASTER)}
+                  className={styles.botButton}
+                  title={getDifficultyDescription(BotDifficulty.MASTER)}
+                >
+                  👑 Bot Maître
+                </button>
               </div>
               <button 
                 onClick={disableBotMode}
