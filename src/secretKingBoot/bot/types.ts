@@ -3,7 +3,9 @@ import { SecretKingBootGameState, GameAction } from '../types';
 export enum BotDifficulty {
   EASY = 'easy',
   MEDIUM = 'medium',
-  HARD = 'hard'
+  HARD = 'hard',
+  EXPERT = 'expert',
+  MASTER = 'master'
 }
 
 export interface BotConfig {

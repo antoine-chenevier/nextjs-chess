@@ -1,7 +1,7 @@
 import { Bot, BotConfig, BotDifficulty } from './types';
 import { SecretKingBootGameState, GameAction, ActionType } from '../types';
 import { getAvailableActions, getPossibleMoves } from '../gameAnalysis';
-import { evaluatePosition } from './evaluation';
+import { evaluatePositionSimple } from './evaluation';
 import { applyAction } from '../gameActions';
 
 export class SimpleBot implements Bot {
@@ -63,7 +63,7 @@ export class SimpleBot implements Bot {
       try {
         const newState = this.simulateAction(gameState, action);
         if (newState) {
-          const score = evaluatePosition(newState, gameState.currentPlayer);
+          const score = evaluatePositionSimple(newState, gameState.currentPlayer);
           
           // Ajouter un peu de randomness pour éviter les jeux trop prévisibles
           const randomBonus = (Math.random() - 0.5) * this.config.randomness * 100;
@@ -121,7 +121,7 @@ export class SimpleBot implements Bot {
     const newState = this.simulateAction(gameState, action);
     
     if (!newState || depth === 0) {
-      return evaluatePosition(newState || gameState, gameState.currentPlayer);
+      return evaluatePositionSimple(newState || gameState, gameState.currentPlayer);
     }
 
     const availableActionTypes = getAvailableActions(newState);
@@ -133,7 +133,7 @@ export class SimpleBot implements Bot {
     }
     
     if (allPossibleActions.length === 0) {
-      return evaluatePosition(newState, gameState.currentPlayer);
+      return evaluatePositionSimple(newState, gameState.currentPlayer);
     }
 
     if (isMaximizing) {
