@@ -765,48 +765,88 @@ const ChessBoard: React.FC<ChessBoardProps> = ({
   possibleMoves = [], 
   onSquareClick 
 }) => {
+  const columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+  const rows = [8, 7, 6, 5, 4, 3, 2, 1];
+  
   return (
-    <div className={styles.chessBoard}>
-      {Array(8).fill(0).map((_, rank) => (
-        Array(8).fill(0).map((_, file) => {
-          const position = String.fromCharCode(65 + file) + (8 - rank);
-          const piece = gameState.board[7 - rank][file];
-          const isLight = (rank + file) % 2 === 0;
-          
-          // Vérifier si cette case est une destination possible
-          const isPossibleMove = possibleMoves.some(move => move.to === position);
-          
-          // Vérifier si le roi sur cette case est en échec
-          const isKingInCheck = piece && 
-            ((piece === 'WhiteKing' && gameState.gameStatus?.status === 'check' && gameState.gameStatus?.player === 'white') ||
-             (piece === 'BlackKing' && gameState.gameStatus?.status === 'check' && gameState.gameStatus?.player === 'black'));
-          
-          return (
-            <div
-              key={position}
-              className={`${styles.square} ${isLight ? styles.light : styles.dark} ${isPossibleMove ? styles.possible : ''} ${isKingInCheck ? styles.inCheck : ''}`}
-              onClick={() => onSquareClick(position)}
-            >
-              {piece && (() => {
-                const PieceComponent = getPieceComponent(piece);
-                return PieceComponent ? (
-                  <div className={styles.piece}>
-                    <PieceComponent size="100%" />
-                  </div>
-                ) : (
-                  <div className={`${styles.piece} ${piece.toLowerCase()}`}>
-                    {getPieceSymbol(piece)}
-                  </div>
-                );
-              })()}
-              <div className={styles.squareLabel}>{position}</div>
-              {isPossibleMove && (
-                <div className={styles.moveIndicator}>●</div>
-              )}
-            </div>
-          );
-        })
-      ))}
+    <div className={styles.boardWithLabels}>
+      {/* Column labels top */}
+      <div className={styles.columnLabelsTop}>
+        <div className={styles.cornerSpace}></div>
+        {columns.map(col => (
+          <div key={col} className={styles.columnLabel}>{col}</div>
+        ))}
+        <div className={styles.cornerSpace}></div>
+      </div>
+      
+      {/* Board with row labels */}
+      <div className={styles.boardRow}>
+        {/* Left row labels */}
+        <div className={styles.rowLabelsLeft}>
+          {rows.map(row => (
+            <div key={row} className={styles.rowLabel}>{row}</div>
+          ))}
+        </div>
+        
+        {/* Actual chessboard */}
+        <div className={styles.chessBoard}>
+          {Array(8).fill(0).map((_, rank) => (
+            Array(8).fill(0).map((_, file) => {
+              const position = String.fromCharCode(65 + file) + (8 - rank);
+              const piece = gameState.board[7 - rank][file];
+              const isLight = (rank + file) % 2 === 0;
+              
+              // Vérifier si cette case est une destination possible
+              const isPossibleMove = possibleMoves.some(move => move.to === position);
+              
+              // Vérifier si le roi sur cette case est en échec
+              const isKingInCheck = piece && 
+                ((piece === 'WhiteKing' && gameState.gameStatus?.status === 'check' && gameState.gameStatus?.player === 'white') ||
+                 (piece === 'BlackKing' && gameState.gameStatus?.status === 'check' && gameState.gameStatus?.player === 'black'));
+              
+              return (
+                <div
+                  key={position}
+                  className={`${styles.square} ${isLight ? styles.light : styles.dark} ${isPossibleMove ? styles.possible : ''} ${isKingInCheck ? styles.inCheck : ''}`}
+                  onClick={() => onSquareClick(position)}
+                >
+                  {piece && (() => {
+                    const PieceComponent = getPieceComponent(piece);
+                    return PieceComponent ? (
+                      <div className={styles.piece}>
+                        <PieceComponent size="100%" />
+                      </div>
+                    ) : (
+                      <div className={`${styles.piece} ${piece.toLowerCase()}`}>
+                        {getPieceSymbol(piece)}
+                      </div>
+                    );
+                  })()}
+                  {isPossibleMove && (
+                    <div className={styles.moveIndicator}>●</div>
+                  )}
+                </div>
+              );
+            })
+          ))}
+        </div>
+        
+        {/* Right row labels */}
+        <div className={styles.rowLabelsRight}>
+          {rows.map(row => (
+            <div key={row} className={styles.rowLabel}>{row}</div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Column labels bottom */}
+      <div className={styles.columnLabelsBottom}>
+        <div className={styles.cornerSpace}></div>
+        {columns.map(col => (
+          <div key={col} className={styles.columnLabel}>{col}</div>
+        ))}
+        <div className={styles.cornerSpace}></div>
+      </div>
     </div>
   );
 };

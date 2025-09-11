@@ -97,9 +97,53 @@ export default function SecretKingBootPage() {
         body {
           margin: 0;
           padding: 0;
-          background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+          background: 
+            radial-gradient(circle at 20% 80%, rgba(29, 80, 22, 0.1) 0%, transparent 50%),
+            radial-gradient(circle at 80% 20%, rgba(13, 40, 24, 0.1) 0%, transparent 50%),
+            linear-gradient(135deg, #0d1409 0%, #1a1a1a 25%, #262421 50%, #1d5016 75%, #0d2818 100%);
+          background-attachment: fixed;
           min-height: 100vh;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', sans-serif;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', sans-serif;
+          overflow-x: hidden;
+        }
+        
+        body::before {
+          content: '';
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: 
+            repeating-conic-gradient(
+              from 0deg at 0% 0%,
+              transparent 0deg 60deg,
+              rgba(129, 182, 76, 0.03) 60deg 120deg
+            ),
+            repeating-conic-gradient(
+              from 30deg at 100% 100%,
+              transparent 0deg 60deg,
+              rgba(255, 255, 255, 0.01) 60deg 120deg
+            );
+          background-size: 100px 100px, 80px 80px;
+          background-position: 0 0, 50px 50px;
+          z-index: 0;
+          animation: chessPatternFloat 20s ease-in-out infinite;
+        }
+        
+        @keyframes chessPatternFloat {
+          0%, 100% { 
+            transform: translate(0, 0) rotate(0deg);
+            opacity: 0.5;
+          }
+          33% { 
+            transform: translate(10px, -5px) rotate(0.5deg);
+            opacity: 0.3;
+          }
+          66% { 
+            transform: translate(-5px, 10px) rotate(-0.3deg);
+            opacity: 0.7;
+          }
         }
         
         .page-container {
@@ -110,21 +154,28 @@ export default function SecretKingBootPage() {
           flex-direction: column;
           gap: 40px;
           align-items: center;
+          position: relative;
+          z-index: 1;
         }
         
         .page-header {
           width: 100%;
           text-align: center;
           margin-bottom: 30px;
-          padding: 40px 30px;
-          background: linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+          padding: 50px 40px;
+          background: 
+            linear-gradient(135deg, rgba(26, 26, 26, 0.95) 0%, rgba(38, 36, 33, 0.9) 50%, rgba(13, 40, 24, 0.95) 100%),
+            radial-gradient(ellipse at top, rgba(129, 182, 76, 0.1) 0%, transparent 70%);
           color: #ffffff;
-          border-radius: 20px;
+          border-radius: 25px;
           box-shadow: 
-            0 20px 40px rgba(0,0,0,0.3),
-            inset 0 1px 0 rgba(255,255,255,0.1);
+            0 25px 50px -12px rgba(0, 0, 0, 0.4),
+            0 0 0 1px rgba(255, 255, 255, 0.05),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
           position: relative;
           overflow: hidden;
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(129, 182, 76, 0.2);
         }
         
         .page-header::before {
@@ -138,22 +189,54 @@ export default function SecretKingBootPage() {
             repeating-conic-gradient(
               from 0deg at 0% 0%,
               transparent 0deg 45deg,
-              rgba(255,255,255,0.02) 45deg 90deg
+              rgba(129, 182, 76, 0.03) 45deg 90deg
             );
-          background-size: 40px 40px;
+          background-size: 60px 60px;
           z-index: 1;
+          animation: chessboardPattern 30s linear infinite;
+        }
+        
+        @keyframes chessboardPattern {
+          0% { 
+            transform: translate(0, 0);
+            opacity: 0.3;
+          }
+          50% { 
+            transform: translate(30px, 30px);
+            opacity: 0.1;
+          }
+          100% { 
+            transform: translate(0, 0);
+            opacity: 0.3;
+          }
         }
         
         .page-header::after {
-          content: '♔ ♕ ♖ ♗ ♘ ♙';
+          content: '♔ ♕ ♖ ♗ ♘ ♙ ♚ ♛ ♜ ♝ ♞ ♟';
           position: absolute;
-          top: 10px;
+          top: 15px;
           left: 50%;
           transform: translateX(-50%);
-          font-size: 1.2rem;
-          opacity: 0.15;
-          letter-spacing: 10px;
+          font-size: 1.4rem;
+          opacity: 0.2;
+          letter-spacing: 12px;
           z-index: 1;
+          animation: pieceFloat 8s ease-in-out infinite;
+          background: linear-gradient(45deg, #81b64c, #a8d06b, #81b64c);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+        
+        @keyframes pieceFloat {
+          0%, 100% { 
+            transform: translateX(-50%) translateY(0);
+            opacity: 0.2;
+          }
+          50% { 
+            transform: translateX(-50%) translateY(-3px);
+            opacity: 0.4;
+          }
         }
         
         .page-header > * {
@@ -162,31 +245,49 @@ export default function SecretKingBootPage() {
         }
         
         .page-header h1 {
-          margin: 0 0 20px 0;
-          font-size: 3rem;
-          font-weight: 700;
+          margin: 0 0 25px 0;
+          font-size: 3.5rem;
+          font-weight: 800;
           font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-          text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-          letter-spacing: 1px;
-          background: linear-gradient(145deg, #ffffff, #e8e8e8);
+          text-shadow: 
+            2px 2px 4px rgba(0, 0, 0, 0.5),
+            0 0 20px rgba(129, 182, 76, 0.3);
+          letter-spacing: 2px;
+          background: linear-gradient(145deg, #81b64c 0%, #a8d06b 25%, #81b64c 50%, #6ba042 75%, #81b64c 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
+          background-size: 200% 200%;
+          animation: shimmer 3s ease-in-out infinite;
+          position: relative;
+          z-index: 2;
+        }
+        
+        @keyframes shimmer {
+          0%, 100% { 
+            background-position: 0% 50%;
+          }
+          50% { 
+            background-position: 100% 50%;
+          }
         }
         
         .page-description {
           margin: 0;
-          font-size: 1.3rem;
-          font-weight: 300;
-          line-height: 1.6;
-          max-width: 800px;
+          font-size: 1.4rem;
+          font-weight: 400;
+          line-height: 1.7;
+          max-width: 900px;
           margin: 0 auto;
-          text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+          text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
+          position: relative;
+          z-index: 2;
+          color: rgba(255, 255, 255, 0.95);
         }
         
         .page-description strong {
           font-weight: 600;
-          color: #ffd700;
+          color: #81b64c;
         }
         
         .game-section {
@@ -198,44 +299,166 @@ export default function SecretKingBootPage() {
         .rules-section {
           width: 100%;
           max-width: 1200px;
-          background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
-          padding: 40px;
-          border-radius: 15px;
+          background: 
+            linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 250, 0.9) 100%);
+          padding: 45px;
+          border-radius: 20px;
           box-shadow: 
-            0 15px 35px rgba(0,0,0,0.1),
-            0 5px 15px rgba(0,0,0,0.05);
-          border: 1px solid rgba(255,255,255,0.2);
+            0 20px 40px -15px rgba(0, 0, 0, 0.2),
+            0 0 0 1px rgba(129, 182, 76, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.8);
+          border: 1px solid rgba(129, 182, 76, 0.15);
           margin-top: 20px;
+          backdrop-filter: blur(10px);
+          position: relative;
+          overflow: hidden;
+        }
+        
+        .rules-section::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: 
+            repeating-linear-gradient(
+              45deg,
+              transparent 0px,
+              rgba(129, 182, 76, 0.02) 1px,
+              transparent 2px,
+              transparent 50px
+            );
+          z-index: 1;
+        }
+        
+        .rules-section > * {
+          position: relative;
+          z-index: 2;
         }
         
         .rules-section h2 {
-          margin: 0 0 25px 0;
-          color: #1a1a2e;
-          font-size: 1.8rem;
-          font-weight: 600;
-          border-bottom: 3px solid #16213e;
-          padding-bottom: 12px;
-          font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+          margin: 0 0 35px 0;
+          color: #ffffff;
+          font-size: 2.5rem;
+          font-weight: 800;
+          padding: 25px 40px;
           text-align: center;
+          position: relative;
+          background: 
+            linear-gradient(135deg, rgba(26, 26, 26, 0.95) 0%, rgba(45, 80, 22, 0.9) 50%, rgba(13, 40, 24, 0.95) 100%);
+          border-radius: 20px;
+          box-shadow: 
+            0 15px 35px rgba(0, 0, 0, 0.3),
+            0 0 0 1px rgba(129, 182, 76, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          backdrop-filter: blur(10px);
+          border: 2px solid rgba(129, 182, 76, 0.2);
+          font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+          text-shadow: 
+            2px 2px 4px rgba(0, 0, 0, 0.6),
+            0 0 20px rgba(129, 182, 76, 0.4);
+          background: linear-gradient(145deg, #81b64c 0%, #a8d06b 25%, #81b64c 50%, #6ba042 75%, #81b64c 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          background-size: 200% 200%;
+          animation: rulesShimmer 4s ease-in-out infinite;
+          overflow: hidden;
+        }
+        
+        .rules-section h2::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: 
+            linear-gradient(135deg, rgba(26, 26, 26, 0.95) 0%, rgba(45, 80, 22, 0.9) 50%, rgba(13, 40, 24, 0.95) 100%);
+          z-index: -1;
+          border-radius: 18px;
+        }
+        
+        .rules-section h2::after {
+          content: '♔ ♕ ♖ ♗ ♘ ♙';
+          position: absolute;
+          top: 8px;
+          left: 50%;
+          transform: translateX(-50%);
+          font-size: 1rem;
+          opacity: 0.3;
+          letter-spacing: 8px;
+          color: rgba(129, 182, 76, 0.5);
+          animation: pieceFloatRules 6s ease-in-out infinite;
+          z-index: 1;
+        }
+        
+        @keyframes rulesShimmer {
+          0%, 100% { 
+            background-position: 0% 50%;
+          }
+          50% { 
+            background-position: 100% 50%;
+          }
+        }
+        
+        @keyframes pieceFloatRules {
+          0%, 100% { 
+            transform: translateX(-50%) translateY(0);
+            opacity: 0.3;
+          }
+          50% { 
+            transform: translateX(-50%) translateY(-2px);
+            opacity: 0.5;
+          }
+        }
         }
         
         .rules-content section {
-          margin-bottom: 30px;
-          background: rgba(255,255,255,0.7);
-          padding: 20px;
-          border-radius: 10px;
-          border-left: 4px solid #16213e;
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
+          margin-bottom: 35px;
+          background: 
+            linear-gradient(145deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.9) 100%);
+          padding: 25px;
+          border-radius: 15px;
+          border-left: 5px solid transparent;
+          border-image: linear-gradient(180deg, #1a1a1a 0%, #81b64c 50%, #1a1a1a 100%) 1;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 
+            0 4px 15px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.8);
+          position: relative;
+          overflow: hidden;
+        }
+        
+        .rules-content section::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: 
+            radial-gradient(circle at top right, rgba(129, 182, 76, 0.05) 0%, transparent 50%);
+          opacity: 0;
+          transition: opacity 0.3s ease;
         }
         
         .rules-content section:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+          transform: translateY(-3px);
+          box-shadow: 
+            0 10px 30px rgba(0, 0, 0, 0.15),
+            0 0 0 1px rgba(129, 182, 76, 0.2);
+          border-image: linear-gradient(180deg, #81b64c 0%, #1a1a1a 50%, #81b64c 100%) 1;
+        }
+        
+        .rules-content section:hover::before {
+          opacity: 1;
         }
         
         .rules-content h3 {
           margin: 0 0 15px 0;
-          color: #1a1a2e;
+          color: #1a1a1a;
           font-size: 1.2rem;
           font-weight: 600;
           display: flex;
@@ -256,12 +479,12 @@ export default function SecretKingBootPage() {
         }
         
         .rules-content li::marker {
-          color: #16213e;
+          color: #2d5016;
           font-weight: bold;
         }
         
         .rules-content strong {
-          color: #1a1a2e;
+          color: #1a1a1a;
           font-weight: 600;
         }
         
