@@ -338,16 +338,81 @@ export default function SecretKingBootPage() {
         }
         
         .rules-section h2 {
-          margin: 0 0 30px 0;
-          color: #1a1a1a;
-          font-size: 2rem;
-          font-weight: 700;
-          border-bottom: 3px solid transparent;
-          border-image: linear-gradient(90deg, #1a1a1a 0%, #81b64c 50%, #1a1a1a 100%) 1;
-          padding-bottom: 15px;
-          font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+          margin: 0 0 35px 0;
+          color: #ffffff;
+          font-size: 2.5rem;
+          font-weight: 800;
+          padding: 25px 40px;
           text-align: center;
-          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          position: relative;
+          background: 
+            linear-gradient(135deg, rgba(26, 26, 26, 0.95) 0%, rgba(45, 80, 22, 0.9) 50%, rgba(13, 40, 24, 0.95) 100%);
+          border-radius: 20px;
+          box-shadow: 
+            0 15px 35px rgba(0, 0, 0, 0.3),
+            0 0 0 1px rgba(129, 182, 76, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          backdrop-filter: blur(10px);
+          border: 2px solid rgba(129, 182, 76, 0.2);
+          font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+          text-shadow: 
+            2px 2px 4px rgba(0, 0, 0, 0.6),
+            0 0 20px rgba(129, 182, 76, 0.4);
+          background: linear-gradient(145deg, #81b64c 0%, #a8d06b 25%, #81b64c 50%, #6ba042 75%, #81b64c 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          background-size: 200% 200%;
+          animation: rulesShimmer 4s ease-in-out infinite;
+          overflow: hidden;
+        }
+        
+        .rules-section h2::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: 
+            linear-gradient(135deg, rgba(26, 26, 26, 0.95) 0%, rgba(45, 80, 22, 0.9) 50%, rgba(13, 40, 24, 0.95) 100%);
+          z-index: -1;
+          border-radius: 18px;
+        }
+        
+        .rules-section h2::after {
+          content: '♔ ♕ ♖ ♗ ♘ ♙';
+          position: absolute;
+          top: 8px;
+          left: 50%;
+          transform: translateX(-50%);
+          font-size: 1rem;
+          opacity: 0.3;
+          letter-spacing: 8px;
+          color: rgba(129, 182, 76, 0.5);
+          animation: pieceFloatRules 6s ease-in-out infinite;
+          z-index: 1;
+        }
+        
+        @keyframes rulesShimmer {
+          0%, 100% { 
+            background-position: 0% 50%;
+          }
+          50% { 
+            background-position: 100% 50%;
+          }
+        }
+        
+        @keyframes pieceFloatRules {
+          0%, 100% { 
+            transform: translateX(-50%) translateY(0);
+            opacity: 0.3;
+          }
+          50% { 
+            transform: translateX(-50%) translateY(-2px);
+            opacity: 0.5;
+          }
+        }
         }
         
         .rules-content section {
