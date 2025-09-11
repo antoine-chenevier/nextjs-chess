@@ -98,9 +98,9 @@ export default function SecretKingBootPage() {
           margin: 0;
           padding: 0;
           background: 
-            radial-gradient(circle at 20% 80%, rgba(26, 26, 46, 0.1) 0%, transparent 50%),
-            radial-gradient(circle at 80% 20%, rgba(22, 33, 62, 0.1) 0%, transparent 50%),
-            linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #533483 100%);
+            radial-gradient(circle at 20% 80%, rgba(29, 80, 22, 0.1) 0%, transparent 50%),
+            radial-gradient(circle at 80% 20%, rgba(13, 40, 24, 0.1) 0%, transparent 50%),
+            linear-gradient(135deg, #0d1409 0%, #1a1a1a 25%, #262421 50%, #1d5016 75%, #0d2818 100%);
           background-attachment: fixed;
           min-height: 100vh;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', sans-serif;
@@ -118,7 +118,7 @@ export default function SecretKingBootPage() {
             repeating-conic-gradient(
               from 0deg at 0% 0%,
               transparent 0deg 60deg,
-              rgba(255, 215, 0, 0.03) 60deg 120deg
+              rgba(129, 182, 76, 0.03) 60deg 120deg
             ),
             repeating-conic-gradient(
               from 30deg at 100% 100%,
@@ -164,8 +164,8 @@ export default function SecretKingBootPage() {
           margin-bottom: 30px;
           padding: 50px 40px;
           background: 
-            linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(22, 33, 62, 0.9) 50%, rgba(15, 52, 96, 0.95) 100%),
-            radial-gradient(ellipse at top, rgba(255, 215, 0, 0.1) 0%, transparent 70%);
+            linear-gradient(135deg, rgba(26, 26, 26, 0.95) 0%, rgba(38, 36, 33, 0.9) 50%, rgba(13, 40, 24, 0.95) 100%),
+            radial-gradient(ellipse at top, rgba(129, 182, 76, 0.1) 0%, transparent 70%);
           color: #ffffff;
           border-radius: 25px;
           box-shadow: 
@@ -175,7 +175,7 @@ export default function SecretKingBootPage() {
           position: relative;
           overflow: hidden;
           backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 215, 0, 0.2);
+          border: 1px solid rgba(129, 182, 76, 0.2);
         }
         
         .page-header::before {
@@ -189,7 +189,7 @@ export default function SecretKingBootPage() {
             repeating-conic-gradient(
               from 0deg at 0% 0%,
               transparent 0deg 45deg,
-              rgba(255, 215, 0, 0.03) 45deg 90deg
+              rgba(129, 182, 76, 0.03) 45deg 90deg
             );
           background-size: 60px 60px;
           z-index: 1;
@@ -222,7 +222,7 @@ export default function SecretKingBootPage() {
           letter-spacing: 12px;
           z-index: 1;
           animation: pieceFloat 8s ease-in-out infinite;
-          background: linear-gradient(45deg, #ffd700, #ffed4e, #ffd700);
+          background: linear-gradient(45deg, #81b64c, #a8d06b, #81b64c);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
@@ -251,9 +251,9 @@ export default function SecretKingBootPage() {
           font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
           text-shadow: 
             2px 2px 4px rgba(0, 0, 0, 0.5),
-            0 0 20px rgba(255, 215, 0, 0.3);
+            0 0 20px rgba(129, 182, 76, 0.3);
           letter-spacing: 2px;
-          background: linear-gradient(145deg, #ffd700 0%, #ffed4e 25%, #ffd700 50%, #ffb000 75%, #ffd700 100%);
+          background: linear-gradient(145deg, #81b64c 0%, #a8d06b 25%, #81b64c 50%, #6ba042 75%, #81b64c 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
@@ -287,7 +287,7 @@ export default function SecretKingBootPage() {
         
         .page-description strong {
           font-weight: 600;
-          color: #ffd700;
+          color: #81b64c;
         }
         
         .game-section {
@@ -305,9 +305,9 @@ export default function SecretKingBootPage() {
           border-radius: 20px;
           box-shadow: 
             0 20px 40px -15px rgba(0, 0, 0, 0.2),
-            0 0 0 1px rgba(255, 215, 0, 0.1),
+            0 0 0 1px rgba(129, 182, 76, 0.1),
             inset 0 1px 0 rgba(255, 255, 255, 0.8);
-          border: 1px solid rgba(255, 215, 0, 0.15);
+          border: 1px solid rgba(129, 182, 76, 0.15);
           margin-top: 20px;
           backdrop-filter: blur(10px);
           position: relative;
@@ -325,7 +325,7 @@ export default function SecretKingBootPage() {
             repeating-linear-gradient(
               45deg,
               transparent 0px,
-              rgba(255, 215, 0, 0.02) 1px,
+              rgba(129, 182, 76, 0.02) 1px,
               transparent 2px,
               transparent 50px
             );
@@ -339,11 +339,11 @@ export default function SecretKingBootPage() {
         
         .rules-section h2 {
           margin: 0 0 30px 0;
-          color: #1a1a2e;
+          color: #1a1a1a;
           font-size: 2rem;
           font-weight: 700;
           border-bottom: 3px solid transparent;
-          border-image: linear-gradient(90deg, #1a1a2e 0%, #ffd700 50%, #1a1a2e 100%) 1;
+          border-image: linear-gradient(90deg, #1a1a1a 0%, #81b64c 50%, #1a1a1a 100%) 1;
           padding-bottom: 15px;
           font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
           text-align: center;
@@ -357,7 +357,7 @@ export default function SecretKingBootPage() {
           padding: 25px;
           border-radius: 15px;
           border-left: 5px solid transparent;
-          border-image: linear-gradient(180deg, #1a1a2e 0%, #ffd700 50%, #1a1a2e 100%) 1;
+          border-image: linear-gradient(180deg, #1a1a1a 0%, #81b64c 50%, #1a1a1a 100%) 1;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           box-shadow: 
             0 4px 15px rgba(0, 0, 0, 0.08),
@@ -374,7 +374,7 @@ export default function SecretKingBootPage() {
           right: 0;
           bottom: 0;
           background: 
-            radial-gradient(circle at top right, rgba(255, 215, 0, 0.05) 0%, transparent 50%);
+            radial-gradient(circle at top right, rgba(129, 182, 76, 0.05) 0%, transparent 50%);
           opacity: 0;
           transition: opacity 0.3s ease;
         }
@@ -383,8 +383,8 @@ export default function SecretKingBootPage() {
           transform: translateY(-3px);
           box-shadow: 
             0 10px 30px rgba(0, 0, 0, 0.15),
-            0 0 0 1px rgba(255, 215, 0, 0.2);
-          border-image: linear-gradient(180deg, #ffd700 0%, #1a1a2e 50%, #ffd700 100%) 1;
+            0 0 0 1px rgba(129, 182, 76, 0.2);
+          border-image: linear-gradient(180deg, #81b64c 0%, #1a1a1a 50%, #81b64c 100%) 1;
         }
         
         .rules-content section:hover::before {
@@ -393,7 +393,7 @@ export default function SecretKingBootPage() {
         
         .rules-content h3 {
           margin: 0 0 15px 0;
-          color: #1a1a2e;
+          color: #1a1a1a;
           font-size: 1.2rem;
           font-weight: 600;
           display: flex;
@@ -414,12 +414,12 @@ export default function SecretKingBootPage() {
         }
         
         .rules-content li::marker {
-          color: #16213e;
+          color: #2d5016;
           font-weight: bold;
         }
         
         .rules-content strong {
-          color: #1a1a2e;
+          color: #1a1a1a;
           font-weight: 600;
         }
         
